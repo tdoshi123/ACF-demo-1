@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ----------------------------------------------------------------------------
+ * Design tokens — mirrored from the PWC reference theme so raw CSS, inline
+ * styles, and component classes can all reference the same source of truth.
+ * -------------------------------------------------------------------------- */
+:root {
+  --color-bg: #070708;
+  --color-surface: #0e0e10;
+  --color-surface-2: #15151a;
+  --color-surface-3: #1c1c22;
+
+  --color-fg: #f4f4f2;
+  --color-fg-muted: #8a8a85;
+  --color-fg-dim: #4f4f55;
+
+  --color-border: #23232a;
+  --color-border-strong: #2f2f38;
+
+  --color-gold: #d4af37;
+  --color-gold-soft: #b18f23;
+
+  --color-green: #22c55e;
+  --color-green-soft: #15803d;
+
+  --color-red: #ef4444;
+}
+
+@layer base {
+  html,
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: rgba(212, 175, 55, 0.35);
+    color: var(--color-fg);
+  }
+}
+
+@layer components {
+  /* Card surfaces — retoned to PWC's warm-black palette. */
+  .surface-card {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 1rem;
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 0.03) inset,
+      0 8px 24px -16px rgba(0, 0, 0, 0.6);
+  }
+
+  .surface-elevated {
+    background-color: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: 1rem;
+    box-shadow:
+      0 1px 0 0 rgba(255, 255, 255, 0.04) inset,
+      0 14px 40px -16px rgba(0, 0, 0, 0.7);
+  }
+
+  /* Tiny uppercase eyebrow — matches PWC's spaced caps. */
+  .text-eyebrow {
+    font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.24em;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--color-fg-muted);
+  }
+
+  .divider-soft {
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* ------------------------------------------------------------------------
+   * PWC signature backdrop: gold spotlight from the top, faint green
+   * spotlight from the bottom-right, on top of the warm near-black base.
+   * ---------------------------------------------------------------------- */
+  .bg-spotlight {
+    background:
+      radial-gradient(
+        1100px 600px at 50% -10%,
+        rgba(212, 175, 55, 0.08),
+        transparent 60%
+      ),
+      radial-gradient(
+        800px 500px at 100% 100%,
+        rgba(34, 197, 94, 0.05),
+        transparent 60%
+      ),
+      var(--color-bg);
+  }
+
+  /* Subtle dotted-grid texture, masked to fade away from the top center. */
+  .bg-grid {
+    background-image:
+      linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+      linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 64px 64px;
+    -webkit-mask-image: radial-gradient(at 50% 0%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(at 50% 0%, #000 30%, transparent 75%);
+  }
+
+  /* Tabular monospace for numeric "scoreboards" — matches PWC `.score-num`. */
+  .score-num {
+    font-family: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  /* Thin horizontal accent line that fades on both edges. */
+  .hairline {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--color-border-strong),
+      transparent
+    );
+  }
+
+  .animate-pulse-soft {
+    animation: pwcPulse 2.4s ease-in-out infinite;
+  }
+
+  .animate-fade-up {
+    animation: pwcFadeUp 0.36s ease-out both;
+  }
+}
+
+@keyframes pwcPulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+}
+
+@keyframes pwcFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-pulse-soft {
+    animation: none !important;
+  }
+}
