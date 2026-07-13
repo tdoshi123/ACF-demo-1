@@ -151,3 +151,71 @@ export interface RiskAnswer {
   /** 0..3 risk-tolerance weight. Higher = more growth-oriented. */
   value: number;
 }
+
+/* ----------------------------------------------------------------------------
+ * PWC check-tracking model (ported from the PWC codebase).
+ *
+ * A single check is split into program-defined buckets the moment it's logged
+ * (see `splitIncome` in lib/tracking.ts). All amounts are raw dollars — no
+ * rounding happens in the model; formatting/rounding is a display concern.
+ * -------------------------------------------------------------------------- */
+
+/**
+ * The program-defined breakdown of a single check. Every field is a dollar
+ * amount. `retainedTotal` = emergency + investing + controlledRisk + kids
+ * (taxes are NOT retained — that money leaves the household).
+ */
+export interface IncomeSplit {
+  taxes: number;
+  lifestyle: number;
+  emergency: number;
+  investing: number;
+  controlledRisk: number;
+  kids: number;
+  retainedTotal: number;
+}
+
+/**
+ * A logged check. The `split` is computed once at entry time against the
+ * program that was active then, so historical checks keep their original
+ * allocation even if program percentages change later.
+ */
+export interface IncomeEvent {
+  id: string;
+  amount: number;
+  /** References `Program.id` from lib/programs.ts. */
+  programId: string;
+  /** ISO date string (YYYY-MM-DD). */
+  receivedDate: string;
+  split: IncomeSplit;
+  source?: string;
+  note?: string;
+  /** ISO timestamp for stable ordering. */
+  createdAt?: string;
+}
+
+/** A logged lifestyle spend. Every spend draws from the lifestyle bucket. */
+export interface SpendingLog {
+  id: string;
+  amount: number;
+  category: string;
+  /** ISO date string (YYYY-MM-DD). */
+  spendDate: string;
+  note?: string;
+  /** ISO timestamp for stable ordering. */
+  createdAt?: string;
+}
+
+/** Aggregated dashboard payload produced by `calculateTotals`. */
+export interface TrackingTotals {
+  totalIncome: number;
+  totalTaxes: number;
+  totalLifestyleAllocated: number;
+  totalLifestyleSpent: number;
+  totalEmergency: number;
+  totalInvesting: number;
+  totalControlledRisk: number;
+  totalKids: number;
+  totalRetained: number;
+  lifestyleRemaining: number;
+}

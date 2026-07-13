@@ -4,8 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BookOpen,
+  CircleDollarSign,
   LayoutDashboard,
   PieChart,
+  Receipt,
   Settings,
   ShieldCheck,
 } from "lucide-react";
@@ -13,6 +15,8 @@ import {
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/portfolio", label: "Portfolio", icon: PieChart },
+  { href: "/enter-check", label: "Enter Check", icon: CircleDollarSign },
+  { href: "/log-spending", label: "Log Spending", icon: Receipt },
   { href: "/education", label: "Education", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: Settings },
 ];

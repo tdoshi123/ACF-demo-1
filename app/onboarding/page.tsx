@@ -33,13 +33,13 @@ import SectionCard from "@/components/SectionCard";
 import BadgePill from "@/components/BadgePill";
 import DisclaimerBox from "@/components/DisclaimerBox";
 import {
-  buildPlan,
   determineDepositWarning,
   formatCurrency,
   recommendPortfolioFromRiskAnswers,
   riskProfileLabel,
 } from "@/lib/calculations";
 import { portfolioByRisk } from "@/lib/mockData";
+import { getProgramById, PROGRAMS, type Program } from "@/lib/programs";
 import { StorageKeys, writeJSON } from "@/lib/storage";
 import type {
   AthleteIdentity,
@@ -56,7 +56,7 @@ import type {
 const STEPS = [
   { id: "welcome", label: "Welcome" },
   { id: "auth", label: "Teamworks" },
-  { id: "rule", label: "50 / 30 / 20" },
+  { id: "program", label: "Program" },
   { id: "income", label: "Income" },
   { id: "wallet", label: "Wallet" },
   { id: "deposit", label: "Deposit" },
@@ -164,9 +164,23 @@ export default function OnboardingPage() {
   const [authError, setAuthError] = useState(false);
   const [identity, setIdentity] = useState<AthleteIdentity | null>(null);
 
+  // Step 3 — program selection
+  const [selectedProgramId, setSelectedProgramId] = useState<string | null>(
+    null,
+  );
+  const selectedProgram = useMemo(
+    () => getProgramById(selectedProgramId ?? ""),
+    [selectedProgramId],
+  );
+
   // Step 4 — income
   const [income, setIncome] = useState<number>(4000);
-  const plan = useMemo(() => buildPlan(income), [income]);
+
+  // Monthly investing target = selected program's investing % × income
+  const savingsTarget = useMemo(
+    () => (selectedProgram ? Math.round(selectedProgram.investing * income) : 0),
+    [selectedProgram, income],
+  );
 
   // Step 5 — wallet
   const [wallet, setWallet] = useState<WalletConnectionState>({
@@ -204,17 +218,17 @@ export default function OnboardingPage() {
   }, [depositAmount, frequency]);
   const depositWarning = determineDepositWarning(
     monthlyEquivalent,
-    plan.savingsInvesting,
+    savingsTarget,
   );
 
   // Reset deposit warning visibility when income or amount changes
   useEffect(() => {
-    if (depositAmount > plan.savingsInvesting * 4 && plan.savingsInvesting > 0) {
-      setDepositAmount(Math.round(plan.savingsInvesting));
+    if (depositAmount > savingsTarget * 4 && savingsTarget > 0) {
+      setDepositAmount(Math.round(savingsTarget));
     }
-    // we intentionally only watch income changes here
+    // we intentionally only watch the investing target here
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [plan.savingsInvesting]);
+  }, [savingsTarget]);
 
   /* --------------------------------------------------------------------------
    * Step gating
@@ -228,8 +242,8 @@ export default function OnboardingPage() {
         return true;
       case "auth":
         return identity !== null;
-      case "rule":
-        return true;
+      case "program":
+        return selectedProgram !== null;
       case "income":
         return income > 0;
       case "wallet":
@@ -289,6 +303,7 @@ export default function OnboardingPage() {
   function finish() {
     writeJSON(StorageKeys.athleteIdentity, identity);
     writeJSON(StorageKeys.income, income);
+    writeJSON(StorageKeys.program, selectedProgramId);
     writeJSON(StorageKeys.wallet, wallet);
     writeJSON(StorageKeys.deposit, {
       amount: depositAmount,
@@ -328,10 +343,21 @@ export default function OnboardingPage() {
           />
         )}
 
-        {step === "rule" && <RuleStep />}
+        {step === "program" && (
+          <ProgramStep
+            programs={PROGRAMS}
+            selectedId={selectedProgramId}
+            onSelect={setSelectedProgramId}
+          />
+        )}
 
         {step === "income" && (
-          <IncomeStep income={income} setIncome={setIncome} plan={plan} />
+          <IncomeStep
+            income={income}
+            setIncome={setIncome}
+            program={selectedProgram}
+            savingsTarget={savingsTarget}
+          />
         )}
 
         {step === "wallet" && (
@@ -353,7 +379,7 @@ export default function OnboardingPage() {
             setFundingSource={setFundingSource}
             startDate={startDate}
             setStartDate={setStartDate}
-            savingsTarget={plan.savingsInvesting}
+            savingsTarget={savingsTarget}
             monthlyEquivalent={monthlyEquivalent}
             warning={depositWarning}
           />
@@ -373,7 +399,8 @@ export default function OnboardingPage() {
           <DoneStep
             identity={identity}
             income={income}
-            plan={plan}
+            program={selectedProgram}
+            savingsTarget={savingsTarget}
             wallet={wallet}
             depositAmount={depositAmount}
             frequency={frequency}
@@ -723,6 +750,8 @@ const SAVINGS_EXAMPLES = [
   "Future financial goals",
 ];
 
+// Retained for a future "level up" tier — no longer in the active STEPS sequence.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function RuleStep() {
   return (
     <SectionCard
@@ -831,19 +860,168 @@ function BucketCard({
 }
 
 /* ============================================================================
+ * Step 3 — Choose your program
+ * ========================================================================== */
+
+function ProgramStep({
+  programs,
+  selectedId,
+  onSelect,
+}: {
+  programs: Program[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <SectionCard
+      eyebrow="Step 3"
+      title="Choose your program"
+      subtitle="Each program is a locked allocation framework that sets how every check is split. You can switch later."
+      elevated
+    >
+      <div className="grid gap-3 lg:grid-cols-3">
+        {programs.map((program) => (
+          <ProgramCard
+            key={program.id}
+            program={program}
+            selected={selectedId === program.id}
+            onClick={() => onSelect(program.id)}
+          />
+        ))}
+      </div>
+    </SectionCard>
+  );
+}
+
+function ProgramCard({
+  program,
+  selected,
+  onClick,
+}: {
+  program: Program;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={[
+        "relative flex flex-col rounded-2xl border p-5 text-left transition-all",
+        selected
+          ? "border-gold/60 bg-gold/[0.06] shadow-gold"
+          : "border-white/10 bg-bg-card/60 hover:border-white/20 hover:bg-bg-elevated",
+      ].join(" ")}
+    >
+      <div className="flex items-center justify-between">
+        <span
+          aria-hidden
+          className="h-2.5 w-2.5 rounded-full"
+          style={{ background: program.color }}
+        />
+        {selected ? (
+          <BadgePill tone="gold" icon={<BadgeCheck className="h-3 w-3" />}>
+            Selected
+          </BadgePill>
+        ) : (
+          <span className="text-[10px] uppercase tracking-wider text-ink-muted">
+            Tap to select
+          </span>
+        )}
+      </div>
+
+      <h3 className="mt-4 text-lg font-semibold tracking-tight text-ink">
+        {program.name}
+      </h3>
+      <p className="mt-1.5 text-xs text-ink-secondary">{program.purpose}</p>
+
+      <div className="my-4 h-px bg-white/5" />
+
+      <dl className="space-y-2 text-xs">
+        <ProgramStat
+          label="Retention target"
+          value={formatPct(program.retentionTarget)}
+          emphasis
+        />
+        <ProgramStat label="Investing" value={formatPct(program.investing)} />
+        <ProgramStat
+          label="Lifestyle cap"
+          value={formatPct(program.lifestyleCap)}
+        />
+        <ProgramStat label="Emergency" value={formatPct(program.emergency)} />
+        <ProgramStat
+          label="Controlled risk"
+          value={formatPct(program.controlledRisk)}
+        />
+        {program.kids > 0 && (
+          <ProgramStat label="Kids" value={formatPct(program.kids)} />
+        )}
+      </dl>
+    </button>
+  );
+}
+
+function ProgramStat({
+  label,
+  value,
+  emphasis,
+}: {
+  label: string;
+  value: string;
+  emphasis?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <dt className="text-ink-secondary">{label}</dt>
+      <dd
+        className={[
+          "font-semibold tabular-nums",
+          emphasis ? "text-gold" : "text-ink",
+        ].join(" ")}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+/* ============================================================================
  * Step 4 — Income plan
  * ========================================================================== */
 
 function IncomeStep({
   income,
   setIncome,
-  plan,
+  program,
+  savingsTarget,
 }: {
   income: number;
   setIncome: (n: number) => void;
-  plan: ReturnType<typeof buildPlan>;
+  program: Program | null;
+  savingsTarget: number;
 }) {
-  const target = plan.savingsInvesting;
+  const target = savingsTarget;
+
+  const buckets = program
+    ? [
+        { label: "Taxes", amount: income * program.taxes },
+        { label: "Lifestyle", amount: income * program.lifestyleCap },
+        { label: "Emergency", amount: income * program.emergency },
+        {
+          label: "Investing",
+          amount: income * program.investing,
+          highlight: true,
+        },
+        {
+          label: "Controlled risk",
+          amount: income * program.controlledRisk,
+        },
+        ...(program.kids > 0
+          ? [{ label: "Kids", amount: income * program.kids }]
+          : []),
+      ]
+    : [];
 
   return (
     <SectionCard
@@ -890,35 +1068,37 @@ function IncomeStep({
           ))}
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-bg-card/70 p-5">
-          <div className="flex items-center justify-between">
-            <div className="text-eyebrow">Your 50 / 30 / 20 plan</div>
-            <span className="text-xs text-ink-secondary">
-              Based on {formatCurrency(income)} / mo
-            </span>
-          </div>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <PlanRow tone="needs" label="Needs · 50%" amount={plan.needs} />
-            <PlanRow tone="wants" label="Wants · 30%" amount={plan.wants} />
-            <PlanRow
-              tone="savings"
-              label="Save & invest · 20%"
-              amount={plan.savingsInvesting}
-            />
-          </div>
+        {program && (
+          <div className="rounded-2xl border border-white/10 bg-bg-card/70 p-5">
+            <div className="flex items-center justify-between">
+              <div className="text-eyebrow">Your {program.name} plan</div>
+              <span className="text-xs text-ink-secondary">
+                Based on {formatCurrency(income)} / mo
+              </span>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              {buckets.map((b) => (
+                <PlanRow
+                  key={b.label}
+                  label={b.label}
+                  amount={b.amount}
+                  highlight={"highlight" in b && b.highlight}
+                />
+              ))}
+            </div>
 
-          <div className="mt-5 rounded-xl border border-gold/30 bg-gold/[0.07] p-4">
-            <div className="flex items-center gap-2 text-sm text-ink">
-              <Target className="h-4 w-4 text-gold" />
-              Based on the 50 / 30 / 20 rule, your savings and investing target
-              is{" "}
-              <span className="font-semibold text-gold">
-                {formatCurrency(target)}
-              </span>{" "}
-              per month.
+            <div className="mt-5 rounded-xl border border-gold/30 bg-gold/[0.07] p-4">
+              <div className="flex items-center gap-2 text-sm text-ink">
+                <Target className="h-4 w-4 text-gold" />
+                Based on {program.name}, your monthly investing target is{" "}
+                <span className="font-semibold text-gold">
+                  {formatCurrency(target)}
+                </span>{" "}
+                per month.
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className="rounded-2xl border border-white/10 bg-bg-card/60 p-5">
           <div className="text-eyebrow">Recommended recurring investing range</div>
@@ -941,8 +1121,8 @@ function IncomeStep({
             />
           </div>
           <p className="mt-3 text-xs text-ink-secondary">
-            These are percentages of your 20% savings/investing target — not of
-            your total income.
+            These are percentages of your program&apos;s investing target — not
+            of your total income.
           </p>
         </div>
       </div>
@@ -951,24 +1131,30 @@ function IncomeStep({
 }
 
 function PlanRow({
-  tone,
   label,
   amount,
+  highlight,
 }: {
-  tone: "needs" | "wants" | "savings";
   label: string;
   amount: number;
+  highlight?: boolean;
 }) {
-  const dot =
-    tone === "needs"
-      ? "bg-needs"
-      : tone === "wants"
-        ? "bg-wants"
-        : "bg-savings";
   return (
-    <div className="rounded-xl border border-white/5 bg-bg-card/40 p-4">
+    <div
+      className={[
+        "rounded-xl border p-4",
+        highlight
+          ? "border-gold/40 bg-gold/[0.06]"
+          : "border-white/5 bg-bg-card/40",
+      ].join(" ")}
+    >
       <div className="flex items-center gap-2 text-xs text-ink-secondary">
-        <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+        <span
+          className={[
+            "h-1.5 w-1.5 rounded-full",
+            highlight ? "bg-gold" : "bg-white/30",
+          ].join(" ")}
+        />
         {label}
       </div>
       <div className="mt-2 text-xl font-semibold tracking-tight text-ink">
@@ -1225,7 +1411,7 @@ function DepositStep({
     <SectionCard
       eyebrow="Step 6"
       title="Set your recurring deposit"
-      subtitle="You choose the amount. The 20% bucket from step 4 is your suggested ceiling — not a requirement."
+      subtitle="You choose the amount. Your program's investing target is your suggested ceiling — not a requirement."
       elevated
     >
       <div className="space-y-5">
@@ -1233,7 +1419,7 @@ function DepositStep({
           <div className="flex items-center justify-between">
             <div>
               <div className="text-eyebrow text-gold">
-                Your 20% savings target
+                Your investing target
               </div>
               <div className="mt-1 text-2xl font-semibold tracking-tight text-ink">
                 {formatCurrency(savingsTarget)} / mo
@@ -1343,7 +1529,7 @@ function DepositStep({
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-ink-secondary">20% ceiling</div>
+              <div className="text-xs text-ink-secondary">Investing ceiling</div>
               <div className="text-lg font-semibold text-gold">
                 {formatCurrency(savingsTarget)}
               </div>
@@ -1372,7 +1558,7 @@ function DepositStep({
           >
             <div className="font-semibold text-ink">
               {warning.level === "over"
-                ? `You selected ${formatCurrency(monthlyEquivalent)}/month, but your 20% savings target is ${formatCurrency(savingsTarget)}/month.`
+                ? `You selected ${formatCurrency(monthlyEquivalent)}/month, but your investing target is ${formatCurrency(savingsTarget)}/month.`
                 : warning.title}
             </div>
             <div className="mt-0.5 text-ink-secondary">{warning.message}</div>
@@ -1380,7 +1566,7 @@ function DepositStep({
         </div>
 
         <DisclaimerBox>
-          You are not required to invest the entire 20% bucket. The bucket is a
+          You are not required to invest your entire investing target. It is a
           ceiling — keep needs, taxes, and emergency savings ahead of investing.
         </DisclaimerBox>
       </div>
@@ -1537,7 +1723,8 @@ function RiskStep({
 function DoneStep({
   identity,
   income,
-  plan,
+  program,
+  savingsTarget,
   wallet,
   depositAmount,
   frequency,
@@ -1548,7 +1735,8 @@ function DoneStep({
 }: {
   identity: AthleteIdentity | null;
   income: number;
-  plan: ReturnType<typeof buildPlan>;
+  program: Program | null;
+  savingsTarget: number;
   wallet: WalletConnectionState;
   depositAmount: number;
   frequency: DepositFrequency;
@@ -1587,9 +1775,9 @@ function DoneStep({
           />
           <SummaryCard
             icon={<Building2 className="h-4 w-4 text-gold" />}
-            label="50 / 30 / 20 plan"
-            primary={`${formatCurrency(plan.needs)} · ${formatCurrency(plan.wants)} · ${formatCurrency(plan.savingsInvesting)}`}
-            secondary="Needs · Wants · Save & invest"
+            label="Program"
+            primary={program?.name ?? "—"}
+            secondary={`Investing target ${formatCurrency(savingsTarget)} / mo`}
           />
           <SummaryCard
             icon={<Wallet className="h-4 w-4 text-gold" />}
@@ -1697,6 +1885,10 @@ function InfoTile({
       <p className="mt-2 text-xs text-ink-secondary">{body}</p>
     </div>
   );
+}
+
+function formatPct(decimal: number): string {
+  return `${Math.round(decimal * 100)}%`;
 }
 
 function formatDate(iso: string): string {

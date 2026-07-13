@@ -9,8 +9,11 @@ import {
   Pause,
   PiggyBank,
   Play,
+  Plus,
+  Receipt,
   TrendingDown,
   TrendingUp,
+  Trash2,
   Wallet,
 } from "lucide-react";
 import {
@@ -42,14 +45,21 @@ import {
   portfolioByRisk,
 } from "@/lib/mockData";
 import {
-  buildPlan,
   formatCurrency,
   monthlyDepositEquivalent,
   overallEducationProgress,
   riskProfileLabel,
 } from "@/lib/calculations";
+import { getCategoryById } from "@/lib/categories";
+import { getProgramById, type Program } from "@/lib/programs";
 import { StorageKeys, readJSON, writeJSON } from "@/lib/storage";
-import type { DepositFrequency, RiskProfile } from "@/lib/types";
+import { calculateTotals } from "@/lib/tracking";
+import type {
+  DepositFrequency,
+  IncomeEvent,
+  RiskProfile,
+  SpendingLog,
+} from "@/lib/types";
 import type { ProgressMap } from "@/lib/calculations";
 
 interface StoredDeposit {
@@ -59,7 +69,25 @@ interface StoredDeposit {
 
 type Period = "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL";
 
+type ActivityView = "day" | "month";
+
+type ActivityKind = "check" | "spend";
+
+interface ActivityItem {
+  id: string;
+  kind: ActivityKind;
+  amount: number;
+  /** ISO date string (YYYY-MM-DD) the money moved. */
+  date: string;
+  /** Sort key: prefers createdAt, falls back to the entry date. */
+  ts: number;
+  title: string;
+  note?: string;
+  categoryLabel?: string;
+}
+
 export default function DashboardPage() {
+  const [mounted, setMounted] = useState(false);
   const [income, setIncome] = useState<number>(mockMonthlyIncome.amount);
   const [deposit, setDeposit] = useState<StoredDeposit>({
     amount: mockDeposit.amount,
@@ -69,6 +97,9 @@ export default function DashboardPage() {
   const [risk, setRisk] = useState<RiskProfile>("balanced");
   const [progressMap, setProgressMap] = useState<ProgressMap>({});
   const [showDepositModal, setShowDepositModal] = useState(false);
+  const [program, setProgram] = useState<Program | null>(null);
+  const [events, setEvents] = useState<IncomeEvent[]>([]);
+  const [logs, setLogs] = useState<SpendingLog[]>([]);
 
   useEffect(() => {
     setIncome(readJSON<number>(StorageKeys.income, mockMonthlyIncome.amount));
@@ -80,9 +111,18 @@ export default function DashboardPage() {
     setPaused(readJSON<boolean>(StorageKeys.depositPaused, !mockDeposit.active));
     setRisk(readJSON<RiskProfile>(StorageKeys.risk, "balanced"));
     setProgressMap(readJSON<ProgressMap>(StorageKeys.educationProgress, {}));
+    const programId = readJSON<string>(StorageKeys.program, "");
+    setProgram(programId ? getProgramById(programId) : null);
+    setEvents(readJSON<IncomeEvent[]>(StorageKeys.incomeEvents, []));
+    setLogs(readJSON<SpendingLog[]>(StorageKeys.spendingLogs, []));
+    setMounted(true);
   }, []);
 
-  const plan = useMemo(() => buildPlan(income), [income]);
+  // Monthly investing target = selected program's investing % × income,
+  // matching onboarding's DepositStep/IncomeStep (the 50/30/20 plan is gone).
+  const investingTarget = program
+    ? Math.round(program.investing * income)
+    : 0;
   const portfolio = portfolioByRisk[risk];
 
   const educationPct = overallEducationProgress(
@@ -104,6 +144,24 @@ export default function DashboardPage() {
       return next;
     });
   }
+
+  function deleteEvent(id: string) {
+    setEvents((prev) => {
+      const next = prev.filter((e) => e.id !== id);
+      writeJSON(StorageKeys.incomeEvents, next);
+      return next;
+    });
+  }
+
+  function deleteLog(id: string) {
+    setLogs((prev) => {
+      const next = prev.filter((l) => l.id !== id);
+      writeJSON(StorageKeys.spendingLogs, next);
+      return next;
+    });
+  }
+
+  const hasActivity = events.length > 0 || logs.length > 0;
 
   return (
     <AppShell
@@ -267,13 +325,33 @@ export default function DashboardPage() {
           </SectionCard>
         </div>
 
-        {/* ------- 4. Quick Actions ------- */}
+        {/* ------- 4. Recent Activity ------- */}
+        <RecentActivity
+          mounted={mounted}
+          hasActivity={hasActivity}
+          events={events}
+          logs={logs}
+          onDeleteEvent={deleteEvent}
+          onDeleteLog={deleteLog}
+        />
+
+        {/* ------- 5. Quick Actions ------- */}
         <SectionCard
           eyebrow="Quick actions"
           title="What do you want to do next?"
           subtitle="Every action is reversible. Discipline is built one button at a time."
         >
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <ActionButton
+              icon={<Plus className="h-4 w-4" />}
+              label="Enter check"
+              href="/enter-check"
+            />
+            <ActionButton
+              icon={<Receipt className="h-4 w-4" />}
+              label="Log spending"
+              href="/log-spending"
+            />
             <ActionButton
               icon={<Wallet className="h-4 w-4" />}
               label="Change recurring deposit"
@@ -308,7 +386,8 @@ export default function DashboardPage() {
         open={showDepositModal}
         onClose={() => setShowDepositModal(false)}
         deposit={deposit}
-        savingsTarget={plan.savingsInvesting}
+        savingsTarget={investingTarget}
+        programName={program?.name}
         onSave={(next) => {
           setDeposit(next);
           writeJSON(StorageKeys.deposit, next);
@@ -514,6 +593,304 @@ function PortfolioValueChart({
   );
 }
 
+/** Local YYYY-MM-DD for "today" (avoids UTC drift from toISOString). */
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate(),
+  ).padStart(2, "0")}`;
+}
+
+/** Local YYYY-MM prefix for the current month. */
+function monthKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+/** Format a YYYY-MM-DD entry date as e.g. "Jul 13" in local time. */
+function formatActivityDate(dateStr: string): string {
+  if (!dateStr) return "";
+  const [y, m, d] = dateStr.split("-").map(Number);
+  if (!y || !m || !d) return dateStr;
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function RecentActivity({
+  mounted,
+  hasActivity,
+  events,
+  logs,
+  onDeleteEvent,
+  onDeleteLog,
+}: {
+  mounted: boolean;
+  hasActivity: boolean;
+  events: IncomeEvent[];
+  logs: SpendingLog[];
+  onDeleteEvent: (id: string) => void;
+  onDeleteLog: (id: string) => void;
+}) {
+  const [view, setView] = useState<ActivityView>("day");
+  const [armedId, setArmedId] = useState<string | null>(null);
+
+  const { items, totals } = useMemo(() => {
+    const inView = (dateStr: string) =>
+      view === "day"
+        ? dateStr === todayKey()
+        : Boolean(dateStr) && dateStr.startsWith(monthKey());
+
+    const filteredEvents = events.filter((e) => inView(e.receivedDate));
+    const filteredLogs = logs.filter((l) => inView(l.spendDate));
+
+    const checkItems: ActivityItem[] = filteredEvents.map((e) => ({
+      id: e.id,
+      kind: "check",
+      amount: e.amount,
+      date: e.receivedDate,
+      ts: Date.parse(e.createdAt ?? e.receivedDate) || 0,
+      title: e.source?.trim() || "Check",
+      note: e.note,
+    }));
+
+    const spendItems: ActivityItem[] = filteredLogs.map((l) => {
+      const cat = getCategoryById(l.category);
+      return {
+        id: l.id,
+        kind: "spend",
+        amount: l.amount,
+        date: l.spendDate,
+        ts: Date.parse(l.createdAt ?? l.spendDate) || 0,
+        title: l.note?.trim() || cat?.label || "Spend",
+        categoryLabel: cat?.label ?? "Spend",
+      };
+    });
+
+    return {
+      items: [...checkItems, ...spendItems].sort((a, b) => b.ts - a.ts),
+      totals: calculateTotals(filteredEvents, filteredLogs),
+    };
+  }, [events, logs, view]);
+
+  function handleDelete(item: ActivityItem) {
+    if (item.kind === "check") onDeleteEvent(item.id);
+    else onDeleteLog(item.id);
+    setArmedId(null);
+  }
+
+  return (
+    <SectionCard
+      eyebrow="Recent activity"
+      title="Checks & spends"
+      subtitle={
+        view === "day" ? "What moved today." : "Month to date, newest first."
+      }
+      right={
+        <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-bg-card/60 p-1 text-xs">
+          {(["day", "month"] as ActivityView[]).map((v) => {
+            const active = view === v;
+            return (
+              <button
+                key={v}
+                type="button"
+                onClick={() => {
+                  setView(v);
+                  setArmedId(null);
+                }}
+                className={[
+                  "rounded-lg px-3 py-1.5 font-semibold capitalize transition-colors",
+                  active
+                    ? "bg-white/10 text-ink"
+                    : "text-ink-muted hover:text-ink",
+                ].join(" ")}
+              >
+                {v}
+              </button>
+            );
+          })}
+        </div>
+      }
+    >
+      {!mounted ? (
+        <div className="h-24 animate-pulse rounded-2xl border border-white/5 bg-bg-card/40" />
+      ) : !hasActivity ? (
+        <EmptyActivity />
+      ) : (
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-2">
+            <ActivityStat
+              label="Checks in"
+              value={formatCurrency(totals.totalIncome)}
+              tone="success"
+            />
+            <ActivityStat
+              label="Spent"
+              value={formatCurrency(totals.totalLifestyleSpent)}
+              tone="ink"
+            />
+            <ActivityStat
+              label="Retained"
+              value={formatCurrency(totals.totalRetained)}
+              tone="gold"
+            />
+          </div>
+
+          {items.length === 0 ? (
+            <p className="rounded-2xl border border-dashed border-white/10 bg-bg-card/40 px-4 py-8 text-center text-sm text-ink-secondary">
+              {view === "day"
+                ? "Nothing logged today yet."
+                : "Nothing logged this month yet."}
+            </p>
+          ) : (
+            <ul className="divide-y divide-white/5">
+              {items.map((item) => (
+                <ActivityRow
+                  key={`${item.kind}-${item.id}`}
+                  item={item}
+                  armed={armedId === item.id}
+                  onArm={() => setArmedId(item.id)}
+                  onCancel={() => setArmedId(null)}
+                  onDelete={() => handleDelete(item)}
+                />
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function ActivityStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "success" | "ink" | "gold";
+}) {
+  const toneClass =
+    tone === "success"
+      ? "text-success"
+      : tone === "gold"
+        ? "text-gold"
+        : "text-ink";
+  return (
+    <div className="rounded-2xl border border-white/5 bg-bg-card/60 px-3 py-2.5">
+      <div className="text-eyebrow">{label}</div>
+      <div
+        className={`score-num mt-1 text-base font-semibold tabular-nums ${toneClass}`}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function ActivityRow({
+  item,
+  armed,
+  onArm,
+  onCancel,
+  onDelete,
+}: {
+  item: ActivityItem;
+  armed: boolean;
+  onArm: () => void;
+  onCancel: () => void;
+  onDelete: () => void;
+}) {
+  const isCheck = item.kind === "check";
+  return (
+    <li className="flex items-center justify-between gap-3 py-3.5">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <span
+            className={[
+              "score-num shrink-0 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider",
+              isCheck
+                ? "border-success/30 bg-success/5 text-success"
+                : "border-white/10 bg-bg-card/60 text-ink-muted",
+            ].join(" ")}
+          >
+            {isCheck ? "Check" : item.categoryLabel}
+          </span>
+          <span className="truncate text-sm text-ink">{item.title}</span>
+        </div>
+        <div className="mt-1 text-[11px] text-ink-muted">
+          {formatActivityDate(item.date)}
+          {isCheck && item.note ? ` · ${item.note}` : ""}
+        </div>
+      </div>
+
+      <div className="flex shrink-0 items-center gap-3">
+        <span
+          className={[
+            "score-num text-right text-base font-semibold tabular-nums",
+            isCheck ? "text-success" : "text-ink",
+          ].join(" ")}
+        >
+          {isCheck ? "+" : "−"}
+          {formatCurrency(item.amount)}
+        </span>
+        {armed ? (
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="rounded-lg border border-white/10 bg-bg-card/60 px-2.5 py-1 text-[11px] text-ink-secondary transition-colors hover:border-white/20 hover:text-ink"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onDelete}
+              className="rounded-lg border border-danger/40 bg-danger/15 px-2.5 py-1 text-[11px] font-semibold text-danger transition-colors hover:bg-danger/25"
+            >
+              Delete
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onArm}
+            aria-label="Delete entry"
+            className="rounded-lg border border-white/10 bg-bg-card/60 p-1.5 text-ink-muted transition-colors hover:border-danger/30 hover:text-danger"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+    </li>
+  );
+}
+
+function EmptyActivity() {
+  return (
+    <div className="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-white/10 py-10 text-center">
+      <span
+        aria-hidden
+        className="grid h-11 w-11 place-items-center rounded-full border border-white/10 bg-bg-card/60 text-ink-muted"
+      >
+        <Receipt className="h-5 w-5" />
+      </span>
+      <div className="px-6">
+        <p className="text-sm font-medium text-ink">No checks or spends yet.</p>
+        <p className="mt-1 text-[13px] text-ink-secondary">
+          Start with your first check — the split locks the moment it lands.
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <PrimaryButton href="/enter-check">+ Enter Check</PrimaryButton>
+        <SecondaryButton href="/log-spending">+ Log Spending</SecondaryButton>
+      </div>
+    </div>
+  );
+}
+
 function ActionButton({
   icon,
   label,
@@ -548,12 +925,14 @@ function ChangeDepositModal({
   onClose,
   deposit,
   savingsTarget,
+  programName,
   onSave,
 }: {
   open: boolean;
   onClose: () => void;
   deposit: StoredDeposit;
   savingsTarget: number;
+  programName?: string;
   onSave: (next: StoredDeposit) => void;
 }) {
   const [amount, setAmount] = useState(deposit.amount);
@@ -580,7 +959,11 @@ function ChangeDepositModal({
       onClose={onClose}
       eyebrow="Recurring deposit"
       title="Change your recurring amount"
-      subtitle="Stays inside your 20% savings/investing bucket from the 50/30/20 plan."
+      subtitle={
+        programName
+          ? `Stays inside your ${programName} investing target.`
+          : "Stays inside your program's investing target."
+      }
       footer={
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
@@ -650,7 +1033,7 @@ function ChangeDepositModal({
             height={8}
           />
           <div className="mt-2 text-[11px] text-ink-muted">
-            {pct}% of your 20% savings/investing bucket.
+            {pct}% of your program&apos;s monthly investing target.
           </div>
         </div>
       </div>

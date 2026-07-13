@@ -52,9 +52,9 @@ export interface DepositWarning {
 }
 
 /**
- * The 20% savings/investing bucket is the ceiling for what we recommend depositing.
- * - "over": deposit exceeds the 20% bucket
- * - "low":  deposit is below 25% of the bucket — likely under-using NIL income
+ * The program's investing target is the ceiling for what we recommend depositing.
+ * - "over": deposit exceeds the investing target
+ * - "low":  deposit is below 25% of the target — likely under-using NIL income
  * - "ok":   deposit is in the healthy band
  */
 export function determineDepositWarning(
@@ -73,9 +73,9 @@ export function determineDepositWarning(
   if (monthlyDeposit > savingsTarget) {
     return {
       level: "over",
-      title: "Above your 20% target",
+      title: "Above your investing target",
       message:
-        "You selected an amount higher than your 20% savings/investing target. Make sure this does not interfere with needs, taxes, or emergency savings.",
+        "You selected an amount higher than your program's investing target. Make sure this does not interfere with needs, taxes, or emergency savings.",
     };
   }
 
@@ -84,7 +84,7 @@ export function determineDepositWarning(
       level: "low",
       title: "Below the recommended range",
       message:
-        "You are using less than 25% of your savings/investing bucket. You can safely contribute more without affecting needs or wants.",
+        "You are using less than 25% of your investing target. You can safely contribute more without affecting needs or wants.",
     };
   }
 
@@ -92,7 +92,7 @@ export function determineDepositWarning(
     level: "ok",
     title: "In a healthy range",
     message:
-      "Your recurring amount fits inside the 20% savings/investing bucket from your monthly plan.",
+      "Your recurring amount fits inside your program's investing target from your monthly plan.",
   };
 }
 
