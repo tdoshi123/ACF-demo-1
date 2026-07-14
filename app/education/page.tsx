@@ -94,6 +94,7 @@ export default function EducationPage() {
     <AppShell
       title="Education hub"
       subtitle="Learn how NIL money moves, then learn how to keep it."
+      hideTitleOnMobile
     >
       <div className="space-y-6">
         <SectionCard
@@ -107,7 +108,7 @@ export default function EducationPage() {
           }
         >
           <ProgressBar value={overallPct} color="#D4AF37" height={10} />
-          <DisclaimerBox className="mt-5">
+          <DisclaimerBox className="mt-5 hidden md:block">
             Modules teach concepts. They are not financial, legal, or tax
             advice. When the dollar amounts are real, talk to a professional.
           </DisclaimerBox>
@@ -134,7 +135,8 @@ export default function EducationPage() {
           })}
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        {/* Tablet/desktop: bordered card grid. */}
+        <div className="hidden gap-4 md:grid md:grid-cols-2">
           {modules.map((m) => (
             <ModuleCard
               key={m.id}
@@ -144,6 +146,38 @@ export default function EducationPage() {
             />
           ))}
         </div>
+
+        {/* Phones: lightweight divided list, no boxes-within-boxes (3.12). */}
+        <ul className="divide-y divide-white/5 rounded-2xl border border-white/5 bg-bg-card/40 px-4 md:hidden">
+          {modules.map((m) => {
+            const status = getModuleStatus(m, hydrated ? progressMap : {});
+            const pct = getModuleProgress(m, hydrated ? progressMap : {});
+            return (
+              <li key={m.id}>
+                <button
+                  type="button"
+                  onClick={() => setActiveModuleId(m.id)}
+                  disabled={m.locked}
+                  className="flex w-full items-center justify-between gap-3 py-3 text-left disabled:opacity-60"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-[11px] text-ink-muted">
+                      <BookOpen className="h-3 w-3" />
+                      {m.category} · {m.estimatedMinutes} min
+                    </div>
+                    <div className="mt-0.5 truncate text-sm font-medium text-ink">
+                      {m.title}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-[11px] text-ink-muted">{pct}%</span>
+                    <StatusPill status={status} />
+                  </div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
 
         {/* ------- Badges section ------- */}
         <div id="badges">
@@ -158,7 +192,8 @@ export default function EducationPage() {
               </BadgePill>
             }
           >
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {/* Tablet/desktop: bordered badge cards. */}
+            <div className="hidden gap-4 sm:grid-cols-2 md:grid lg:grid-cols-3">
               {mockBadges.map((b) => (
                 <BadgeCard
                   key={b.id}
@@ -169,6 +204,38 @@ export default function EducationPage() {
                 />
               ))}
             </div>
+
+            {/* Phones: compact divided list to match the module list (3.12). */}
+            <ul className="divide-y divide-white/5 md:hidden">
+              {mockBadges.map((b) => {
+                const unlocked = b.defaultProgress >= 100;
+                return (
+                  <li key={b.id} className="flex items-center gap-3 py-3">
+                    <div
+                      className={[
+                        "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                        unlocked
+                          ? "bg-gradient-gold text-[#0B1020]"
+                          : "bg-white/5 text-ink-muted",
+                      ].join(" ")}
+                    >
+                      <Award className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-ink">
+                        {b.label}
+                      </div>
+                      <div className="truncate text-[11px] text-ink-muted">
+                        {b.requirement}
+                      </div>
+                    </div>
+                    <BadgePill tone={unlocked ? "gold" : "muted"}>
+                      {unlocked ? "Unlocked" : `${b.defaultProgress}%`}
+                    </BadgePill>
+                  </li>
+                );
+              })}
+            </ul>
             <DisclaimerBox className="mt-5">
               No public leaderboards. No social comparison. Progress is yours
               alone — reward for discipline, consistency, and education.

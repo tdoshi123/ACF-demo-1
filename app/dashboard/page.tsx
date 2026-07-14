@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   Award,
   BookOpen,
-  CircleDollarSign,
   Pause,
   PiggyBank,
   Play,
@@ -28,7 +27,6 @@ import {
 import AppShell from "@/components/AppShell";
 import BadgePill from "@/components/BadgePill";
 import DisclaimerBox from "@/components/DisclaimerBox";
-import Modal from "@/components/Modal";
 import PrimaryButton from "@/components/PrimaryButton";
 import ProgressBar from "@/components/ProgressBar";
 import SectionCard from "@/components/SectionCard";
@@ -46,26 +44,14 @@ import {
 } from "@/lib/mockData";
 import {
   formatCurrency,
-  monthlyDepositEquivalent,
   overallEducationProgress,
   riskProfileLabel,
 } from "@/lib/calculations";
 import { getCategoryById } from "@/lib/categories";
-import { getProgramById, type Program } from "@/lib/programs";
 import { StorageKeys, readJSON, writeJSON } from "@/lib/storage";
 import { calculateTotals } from "@/lib/tracking";
-import type {
-  DepositFrequency,
-  IncomeEvent,
-  RiskProfile,
-  SpendingLog,
-} from "@/lib/types";
+import type { IncomeEvent, RiskProfile, SpendingLog } from "@/lib/types";
 import type { ProgressMap } from "@/lib/calculations";
-
-interface StoredDeposit {
-  amount: number;
-  frequency: DepositFrequency;
-}
 
 type Period = "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL";
 
@@ -88,41 +74,21 @@ interface ActivityItem {
 
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
-  const [income, setIncome] = useState<number>(mockMonthlyIncome.amount);
-  const [deposit, setDeposit] = useState<StoredDeposit>({
-    amount: mockDeposit.amount,
-    frequency: mockDeposit.frequency,
-  });
   const [paused, setPaused] = useState<boolean>(!mockDeposit.active);
   const [risk, setRisk] = useState<RiskProfile>("balanced");
   const [progressMap, setProgressMap] = useState<ProgressMap>({});
-  const [showDepositModal, setShowDepositModal] = useState(false);
-  const [program, setProgram] = useState<Program | null>(null);
   const [events, setEvents] = useState<IncomeEvent[]>([]);
   const [logs, setLogs] = useState<SpendingLog[]>([]);
 
   useEffect(() => {
-    setIncome(readJSON<number>(StorageKeys.income, mockMonthlyIncome.amount));
-    const savedDeposit = readJSON<StoredDeposit | null>(
-      StorageKeys.deposit,
-      null,
-    );
-    if (savedDeposit) setDeposit(savedDeposit);
     setPaused(readJSON<boolean>(StorageKeys.depositPaused, !mockDeposit.active));
     setRisk(readJSON<RiskProfile>(StorageKeys.risk, "balanced"));
     setProgressMap(readJSON<ProgressMap>(StorageKeys.educationProgress, {}));
-    const programId = readJSON<string>(StorageKeys.program, "");
-    setProgram(programId ? getProgramById(programId) : null);
     setEvents(readJSON<IncomeEvent[]>(StorageKeys.incomeEvents, []));
     setLogs(readJSON<SpendingLog[]>(StorageKeys.spendingLogs, []));
     setMounted(true);
   }, []);
 
-  // Monthly investing target = selected program's investing % × income,
-  // matching onboarding's DepositStep/IncomeStep (the 50/30/20 plan is gone).
-  const investingTarget = program
-    ? Math.round(program.investing * income)
-    : 0;
   const portfolio = portfolioByRisk[risk];
 
   const educationPct = overallEducationProgress(
@@ -136,14 +102,6 @@ export default function DashboardPage() {
   const earnedBadges = mockBadges.filter(
     (b) => b.defaultProgress >= 100,
   ).length;
-
-  function togglePause() {
-    setPaused((p) => {
-      const next = !p;
-      writeJSON(StorageKeys.depositPaused, next);
-      return next;
-    });
-  }
 
   function deleteEvent(id: string) {
     setEvents((prev) => {
@@ -167,8 +125,20 @@ export default function DashboardPage() {
     <AppShell
       title={`Welcome back, ${mockAthlete.firstName}`}
       subtitle={`${mockAthlete.sport} · ${mockAthlete.school} · ${mockMonthlyIncome.month}`}
+      hideTitleOnMobile
     >
       <div className="space-y-6">
+        {/* Phone-only greeting: scrolls with content instead of pinning in the
+            top bar (3.2). Tablet/desktop use the header's own title blocks. */}
+        <div className="md:hidden">
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">
+            Welcome back, {mockAthlete.firstName}
+          </h1>
+          <p className="mt-1 text-sm text-ink-secondary">
+            {mockAthlete.sport} · {mockAthlete.school} · {mockMonthlyIncome.month}
+          </p>
+        </div>
+
         {/* ------- 1. Portfolio Value (main insight) ------- */}
         <PortfolioValueChart
           balance={mockPortfolioBalance}
@@ -250,7 +220,8 @@ export default function DashboardPage() {
               {completedModules} of {mockEducationModules.length} modules
               complete
             </div>
-            <ul className="mt-4 space-y-2.5">
+            {/* Module preview is lower-priority on phones (3.4). */}
+            <ul className="mt-4 hidden space-y-2.5 md:block">
               {mockEducationModules.slice(0, 3).map((m) => {
                 const pct = progressMap[m.id] ?? m.defaultProgress;
                 return (
@@ -286,14 +257,16 @@ export default function DashboardPage() {
             }
           >
             <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4">
-              {mockBadges.slice(0, 8).map((b) => {
+              {mockBadges.slice(0, 8).map((b, i) => {
                 const unlocked = b.defaultProgress >= 100;
                 return (
                   <div
                     key={b.id}
                     title={b.label}
                     className={[
-                      "flex flex-col items-center gap-1.5 rounded-xl border p-2.5 text-center",
+                      "flex-col items-center gap-1.5 rounded-xl border p-2.5 text-center",
+                      // Only the first row shows on phones (3.4); full set on sm+.
+                      i >= 3 ? "hidden sm:flex" : "flex",
                       unlocked
                         ? "border-gold/30 bg-gold/[0.07]"
                         : "border-white/5 bg-bg-card/40 opacity-60",
@@ -341,7 +314,7 @@ export default function DashboardPage() {
           title="What do you want to do next?"
           subtitle="Every action is reversible. Discipline is built one button at a time."
         >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-4">
             <ActionButton
               icon={<Plus className="h-4 w-4" />}
               label="Enter check"
@@ -355,12 +328,12 @@ export default function DashboardPage() {
             <ActionButton
               icon={<Wallet className="h-4 w-4" />}
               label="Change recurring deposit"
-              onClick={() => setShowDepositModal(true)}
+              href="/settings"
             />
             <ActionButton
               icon={paused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
               label={paused ? "Resume deposit" : "Pause deposit"}
-              onClick={togglePause}
+              href="/settings"
             />
             <ActionButton
               icon={<BookOpen className="h-4 w-4" />}
@@ -381,19 +354,6 @@ export default function DashboardPage() {
           money.
         </DisclaimerBox>
       </div>
-
-      <ChangeDepositModal
-        open={showDepositModal}
-        onClose={() => setShowDepositModal(false)}
-        deposit={deposit}
-        savingsTarget={investingTarget}
-        programName={program?.name}
-        onSave={(next) => {
-          setDeposit(next);
-          writeJSON(StorageKeys.deposit, next);
-          setShowDepositModal(false);
-        }}
-      />
     </AppShell>
   );
 }
@@ -576,7 +536,7 @@ function PortfolioValueChart({
             );
           })}
         </div>
-        <div className="flex items-center gap-4 text-[11px] text-ink-muted">
+        <div className="hidden items-center gap-4 text-[11px] text-ink-muted md:flex">
           <span>
             Contributed{" "}
             <span className="text-ink-secondary">
@@ -917,126 +877,5 @@ function ActionButton({
       {icon}
       {label}
     </button>
-  );
-}
-
-function ChangeDepositModal({
-  open,
-  onClose,
-  deposit,
-  savingsTarget,
-  programName,
-  onSave,
-}: {
-  open: boolean;
-  onClose: () => void;
-  deposit: StoredDeposit;
-  savingsTarget: number;
-  programName?: string;
-  onSave: (next: StoredDeposit) => void;
-}) {
-  const [amount, setAmount] = useState(deposit.amount);
-  const [frequency, setFrequency] = useState<DepositFrequency>(
-    deposit.frequency,
-  );
-
-  useEffect(() => {
-    if (open) {
-      setAmount(deposit.amount);
-      setFrequency(deposit.frequency);
-    }
-  }, [open, deposit]);
-
-  const monthly = monthlyDepositEquivalent(amount, frequency);
-  const pct =
-    savingsTarget > 0
-      ? Math.min(150, Math.round((monthly / savingsTarget) * 100))
-      : 0;
-
-  return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      eyebrow="Recurring deposit"
-      title="Change your recurring amount"
-      subtitle={
-        programName
-          ? `Stays inside your ${programName} investing target.`
-          : "Stays inside your program's investing target."
-      }
-      footer={
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
-          <PrimaryButton
-            onClick={() => onSave({ amount, frequency })}
-          >
-            Save changes
-          </PrimaryButton>
-        </div>
-      }
-    >
-      <div className="space-y-5">
-        <div>
-          <label className="text-xs font-medium text-ink-secondary">
-            Amount (USD)
-          </label>
-          <div className="mt-2 flex items-center gap-2 rounded-2xl border border-white/10 bg-bg-card/70 px-4">
-            <CircleDollarSign className="h-5 w-5 text-gold" />
-            <input
-              type="number"
-              min={0}
-              step={25}
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value) || 0)}
-              className="w-full bg-transparent py-3 text-base font-semibold text-ink outline-none"
-            />
-            <span className="text-xs text-ink-muted">/ {frequency}</span>
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs font-medium text-ink-secondary">
-            Frequency
-          </label>
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            {(["weekly", "biweekly", "monthly"] as DepositFrequency[]).map(
-              (f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setFrequency(f)}
-                  className={[
-                    "rounded-xl border px-3 py-2 text-sm capitalize transition-colors",
-                    frequency === f
-                      ? "border-gold/50 bg-gold/[0.08] text-ink"
-                      : "border-white/10 bg-bg-card/60 text-ink-secondary hover:border-white/20 hover:text-ink",
-                  ].join(" ")}
-                >
-                  {f}
-                </button>
-              ),
-            )}
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-bg-card/70 p-4">
-          <div className="flex items-center justify-between text-xs text-ink-secondary">
-            <span>Monthly equivalent</span>
-            <span className="text-ink">
-              {formatCurrency(monthly)} of {formatCurrency(savingsTarget)}
-            </span>
-          </div>
-          <ProgressBar
-            className="mt-2"
-            value={Math.min(100, pct)}
-            color={pct > 100 ? "#EF4444" : "#D4AF37"}
-            height={8}
-          />
-          <div className="mt-2 text-[11px] text-ink-muted">
-            {pct}% of your program&apos;s monthly investing target.
-          </div>
-        </div>
-      </div>
-    </Modal>
   );
 }

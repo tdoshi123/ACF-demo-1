@@ -66,6 +66,7 @@ const assetClassLegend: { label: string; color: string }[] = (() => {
 export default function PortfolioPage() {
   const [selected, setSelected] = useState<RiskProfile>("balanced");
   const [hydrated, setHydrated] = useState(false);
+  const [showRiskOptions, setShowRiskOptions] = useState(false);
 
   useEffect(() => {
     setSelected(readJSON<RiskProfile>(StorageKeys.risk, "balanced"));
@@ -99,10 +100,52 @@ export default function PortfolioPage() {
     writeJSON(StorageKeys.risk, r);
   }
 
+  const renderRiskOption = (r: RiskProfile) => {
+    const p = portfolioByRisk[r];
+    const active = selected === r;
+    return (
+      <button
+        key={r}
+        type="button"
+        onClick={() => selectProfile(r)}
+        className={[
+          "w-full rounded-xl border p-3.5 text-left transition-all",
+          active
+            ? "border-gold/40 bg-gold/[0.07] shadow-gold"
+            : "border-white/10 bg-bg-card/70 hover:border-white/20",
+        ].join(" ")}
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-eyebrow">{riskProfileLabel(r)}</div>
+            <div className="mt-1 text-sm font-semibold text-ink">{p.name}</div>
+            <div className="mt-0.5 text-[11px] text-ink-secondary">
+              {p.expectedReturn} · {p.volatility}
+            </div>
+          </div>
+          {active && hydrated && <BadgePill tone="gold">Selected</BadgePill>}
+        </div>
+        <div className="mt-2.5 flex h-1.5 overflow-hidden rounded-full bg-white/5">
+          {p.allocation.map((slice) => (
+            <div
+              key={slice.label}
+              title={`${slice.label} ${slice.percent}%`}
+              style={{
+                width: `${slice.percent}%`,
+                background: slice.color,
+              }}
+            />
+          ))}
+        </div>
+      </button>
+    );
+  };
+
   return (
     <AppShell
       title="Portfolio"
       subtitle="Your model portfolio, holdings, and contribution history."
+      hideTitleOnMobile
     >
       <div className="space-y-6">
         <MockBanner />
@@ -112,6 +155,7 @@ export default function PortfolioPage() {
           eyebrow="Allocation"
           title={portfolio.name}
           subtitle={portfolio.description}
+          hideHeaderOnMobile
           right={
             <BadgePill tone="gold" icon={<Target className="h-3 w-3" />}>
               {hydrated ? riskProfileLabel(selected) : "—"}
@@ -146,7 +190,7 @@ export default function PortfolioPage() {
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-4 text-xs text-ink-muted">
+            <div className="hidden items-center gap-4 text-xs text-ink-muted md:flex">
               <div>
                 <div>Contributed</div>
                 <div className="text-sm font-semibold text-ink">
@@ -342,71 +386,74 @@ export default function PortfolioPage() {
             title="Pick the structure that fits"
             subtitle="No stock picking. No timing. Choose a model and let it work."
           >
-            <div className="space-y-2.5">
-              {riskOrder.map((r) => {
-                const p = portfolioByRisk[r];
-                const active = selected === r;
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => selectProfile(r)}
-                    className={[
-                      "w-full rounded-xl border p-3.5 text-left transition-all",
-                      active
-                        ? "border-gold/40 bg-gold/[0.07] shadow-gold"
-                        : "border-white/10 bg-bg-card/70 hover:border-white/20",
-                    ].join(" ")}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-eyebrow">
-                          {riskProfileLabel(r)}
-                        </div>
-                        <div className="mt-1 text-sm font-semibold text-ink">
-                          {p.name}
-                        </div>
-                        <div className="mt-0.5 text-[11px] text-ink-secondary">
-                          {p.expectedReturn} · {p.volatility}
-                        </div>
-                      </div>
-                      {active && hydrated && (
-                        <BadgePill tone="gold">Selected</BadgePill>
-                      )}
+            {/* Desktop/tablet: full 5-option list + color-code legend. */}
+            <div className="hidden md:block">
+              <div className="space-y-2.5">
+                {riskOrder.map(renderRiskOption)}
+              </div>
+
+              {/* Color code legend */}
+              <div className="mt-4 rounded-xl border border-white/5 bg-bg-card/40 p-3">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+                  Color code
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] text-ink-secondary">
+                  {assetClassLegend.map((item) => (
+                    <div key={item.label} className="flex items-center gap-2">
+                      <span
+                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{ background: item.color }}
+                      />
+                      <span className="truncate">{item.label}</span>
                     </div>
-                    <div className="mt-2.5 flex h-1.5 overflow-hidden rounded-full bg-white/5">
-                      {p.allocation.map((slice) => (
-                        <div
-                          key={slice.label}
-                          title={`${slice.label} ${slice.percent}%`}
-                          style={{
-                            width: `${slice.percent}%`,
-                            background: slice.color,
-                          }}
-                        />
-                      ))}
-                    </div>
-                  </button>
-                );
-              })}
+                  ))}
+                </div>
+              </div>
             </div>
 
-            {/* Color code legend */}
-            <div className="mt-4 rounded-xl border border-white/5 bg-bg-card/40 p-3">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
-                Color code
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] text-ink-secondary">
-                {assetClassLegend.map((item) => (
-                  <div key={item.label} className="flex items-center gap-2">
-                    <span
-                      className="h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{ background: item.color }}
-                    />
-                    <span className="truncate">{item.label}</span>
+            {/* Phones: just the selected profile + a compact way to change it. */}
+            <div className="md:hidden">
+              <div className="rounded-xl border border-gold/40 bg-gold/[0.07] p-3.5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-eyebrow">
+                      {hydrated ? riskProfileLabel(selected) : "—"}
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-ink">
+                      {portfolio.name}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-ink-secondary">
+                      {portfolio.expectedReturn} · {portfolio.volatility}
+                    </div>
                   </div>
-                ))}
+                  <button
+                    type="button"
+                    onClick={() => setShowRiskOptions((v) => !v)}
+                    className="shrink-0 rounded-full border border-white/10 bg-bg-card/70 px-3 py-1.5 text-xs font-medium text-ink-secondary transition-colors hover:border-white/20 hover:text-ink"
+                    aria-expanded={showRiskOptions}
+                  >
+                    {showRiskOptions ? "Done" : "Change"}
+                  </button>
+                </div>
+                <div className="mt-2.5 flex h-1.5 overflow-hidden rounded-full bg-white/5">
+                  {portfolio.allocation.map((slice) => (
+                    <div
+                      key={slice.label}
+                      title={`${slice.label} ${slice.percent}%`}
+                      style={{
+                        width: `${slice.percent}%`,
+                        background: slice.color,
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
+
+              {showRiskOptions && (
+                <div className="mt-2.5 space-y-2.5">
+                  {riskOrder.map(renderRiskOption)}
+                </div>
+              )}
             </div>
           </SectionCard>
 

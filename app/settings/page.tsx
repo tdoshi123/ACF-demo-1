@@ -57,6 +57,7 @@ export default function SettingsPage() {
   const [risk, setRisk] = useState<RiskProfile>("balanced");
   const [savedToast, setSavedToast] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [pauseArmed, setPauseArmed] = useState(false);
   const [prefs, setPrefs] = useState<NotificationPrefs>(DEFAULT_PREFS);
 
   useEffect(() => {
@@ -99,6 +100,7 @@ export default function SettingsPage() {
       writeJSON(StorageKeys.depositPaused, next);
       return next;
     });
+    setPauseArmed(false);
   }
 
   function updatePref<K extends keyof NotificationPrefs>(
@@ -143,7 +145,7 @@ export default function SettingsPage() {
             </BadgePill>
           }
         >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="divide-y divide-white/5 md:grid md:gap-3 md:grid-cols-2 md:divide-y-0 lg:grid-cols-4">
             <Row label="Teamworks email" value={mockTeamworksIdentity.email} />
             <Row label="Teamworks ID" value={mockTeamworksIdentity.teamworksId} />
             <Row
@@ -165,7 +167,7 @@ export default function SettingsPage() {
             </BadgePill>
           }
         >
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="divide-y divide-white/5 md:grid md:gap-3 md:grid-cols-3 md:divide-y-0">
             <Row label="Account" value={mockWallet.maskedAccount} />
             <Row
               label="Last deposit"
@@ -184,31 +186,55 @@ export default function SettingsPage() {
           title={`${formatCurrency(depositAmount)} / ${frequency}`}
           subtitle={`Monthly equivalent: ${formatCurrency(monthlyEquivalent)} · ${paused ? "Paused" : "Active"}`}
           right={
-            <button
-              type="button"
-              onClick={togglePause}
-              className={[
-                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
-                paused
-                  ? "border-success/30 bg-success/10 text-success hover:bg-success/15"
-                  : "border-warning/30 bg-warning/10 text-warning hover:bg-warning/15",
-              ].join(" ")}
-            >
-              {paused ? (
-                <>
-                  <Play className="h-3.5 w-3.5" />
-                  Resume
-                </>
-              ) : (
-                <>
-                  <Pause className="h-3.5 w-3.5" />
-                  Pause
-                </>
-              )}
-            </button>
+            pauseArmed ? (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setPauseArmed(false)}
+                  className="rounded-full border border-white/10 bg-bg-card/60 px-3 py-1.5 text-xs font-medium text-ink-secondary transition-colors hover:border-white/20 hover:text-ink"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={togglePause}
+                  className={[
+                    "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                    paused
+                      ? "border-success/40 bg-success/15 text-success hover:bg-success/25"
+                      : "border-warning/40 bg-warning/15 text-warning hover:bg-warning/25",
+                  ].join(" ")}
+                >
+                  {paused ? "Confirm resume" : "Confirm pause"}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setPauseArmed(true)}
+                className={[
+                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                  paused
+                    ? "border-success/30 bg-success/10 text-success hover:bg-success/15"
+                    : "border-warning/30 bg-warning/10 text-warning hover:bg-warning/15",
+                ].join(" ")}
+              >
+                {paused ? (
+                  <>
+                    <Play className="h-3.5 w-3.5" />
+                    Resume
+                  </>
+                ) : (
+                  <>
+                    <Pause className="h-3.5 w-3.5" />
+                    Pause
+                  </>
+                )}
+              </button>
+            )
           }
         >
-          <div className="grid gap-5 lg:grid-cols-2">
+          <div className="grid gap-4 md:gap-5 lg:grid-cols-2">
             <Field label="Monthly NIL income">
               <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-bg-card/70 px-4">
                 <CircleDollarSign className="h-5 w-5 text-gold" />
@@ -262,7 +288,7 @@ export default function SettingsPage() {
             </Field>
 
             <Field label="20% ceiling vs monthly deposit">
-              <div className="rounded-2xl border border-white/5 bg-bg-card/60 p-4">
+              <div className="rounded-2xl border border-white/5 bg-bg-card/60 p-3 md:p-4">
                 <div className="flex items-center justify-between text-xs text-ink-secondary">
                   <span>Monthly equivalent</span>
                   <span className="text-ink">
@@ -319,7 +345,7 @@ export default function SettingsPage() {
             </BadgePill>
           }
         >
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="divide-y divide-white/5 md:grid md:gap-3 md:grid-cols-3 md:divide-y-0">
             <Row label="Expected return" value={portfolio.expectedReturn} />
             <Row label="Volatility" value={portfolio.volatility} />
             <Row
@@ -353,7 +379,7 @@ export default function SettingsPage() {
           eyebrow="Notifications"
           title="Stay nudged, not noisy"
         >
-          <div className="space-y-3">
+          <div className="divide-y divide-white/5 md:space-y-3 md:divide-y-0">
             <Toggle
               label="Recurring deposit reminders"
               hint="Heads-up the day before a scheduled contribution."
@@ -377,7 +403,7 @@ export default function SettingsPage() {
           title="Read before assuming anything"
           subtitle="Important context for everything you see in this app."
         >
-          <ul className="space-y-2.5 text-sm text-ink-secondary">
+          <ul className="divide-y divide-white/5 text-sm text-ink-secondary md:space-y-2.5 md:divide-y-0">
             {[
               "Investing involves risk, including possible loss of principal.",
               "Portfolio values can go down as well as up.",
@@ -389,7 +415,7 @@ export default function SettingsPage() {
             ].map((line) => (
               <li
                 key={line}
-                className="flex items-start gap-2 rounded-xl border border-white/5 bg-bg-card/60 p-3"
+                className="flex items-start gap-2 py-2.5 md:rounded-xl md:border md:border-white/5 md:bg-bg-card/60 md:p-3"
               >
                 <Shield className="mt-0.5 h-4 w-4 shrink-0 text-ink-secondary" />
                 <span className="text-ink">{line}</span>
@@ -451,11 +477,13 @@ export default function SettingsPage() {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-white/5 bg-bg-card/60 p-3">
+    <div className="min-w-0 py-2.5 md:rounded-xl md:border md:border-white/5 md:bg-bg-card/60 md:p-3">
       <div className="text-[11px] uppercase tracking-wide text-ink-muted">
         {label}
       </div>
-      <div className="mt-1 truncate text-sm font-medium text-ink">{value}</div>
+      <div className="mt-1 break-words text-sm font-medium text-ink">
+        {value}
+      </div>
     </div>
   );
 }
@@ -492,7 +520,7 @@ function Toggle({
     <button
       type="button"
       onClick={() => onChange(!value)}
-      className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/5 bg-bg-card/60 p-4 text-left transition-colors hover:border-white/15"
+      className="flex w-full items-center justify-between gap-3 py-3 text-left transition-colors md:rounded-2xl md:border md:border-white/5 md:bg-bg-card/60 md:p-4 md:hover:border-white/15"
     >
       <div className="flex items-start gap-3">
         {icon && (

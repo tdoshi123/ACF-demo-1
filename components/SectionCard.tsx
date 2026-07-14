@@ -9,6 +9,8 @@ export interface SectionCardProps {
   className?: string;
   bodyClassName?: string;
   elevated?: boolean;
+  /** Hide the header block below the `md` breakpoint (phones). */
+  hideHeaderOnMobile?: boolean;
 }
 
 export function SectionCard({
@@ -20,13 +22,16 @@ export function SectionCard({
   className = "",
   bodyClassName = "",
   elevated = false,
+  hideHeaderOnMobile = false,
 }: SectionCardProps) {
   return (
     <section
       className={`${elevated ? "surface-elevated" : "surface-card"} ${className}`}
     >
       {(title || eyebrow || subtitle || right) && (
-        <header className="flex items-start justify-between gap-4 px-5 pt-5 sm:px-6 sm:pt-6">
+        <header
+          className={`${hideHeaderOnMobile ? "hidden md:flex" : "flex"} items-start justify-between gap-4 px-5 pt-5 sm:px-6 sm:pt-6`}
+        >
           <div className="min-w-0">
             {eyebrow && <div className="text-eyebrow">{eyebrow}</div>}
             {title && (

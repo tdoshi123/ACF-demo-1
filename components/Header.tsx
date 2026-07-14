@@ -7,9 +7,15 @@ import { mockAthlete } from "@/lib/mockData";
 export interface HeaderProps {
   title?: string;
   subtitle?: string;
+  /**
+   * When set, the mobile (`lg:hidden`) title/subtitle block is not rendered at
+   * all — the title is dropped on phone and tablet (<lg). The desktop
+   * (`hidden lg:block`) block is unaffected.
+   */
+  hideTitleOnMobile?: boolean;
 }
 
-export function Header({ title, subtitle }: HeaderProps) {
+export function Header({ title, subtitle, hideTitleOnMobile }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 border-b border-[#23232a] bg-bg/80 backdrop-blur">
       <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8 lg:py-4">
@@ -48,16 +54,20 @@ export function Header({ title, subtitle }: HeaderProps) {
             Teamworks verified
           </span>
 
-          <button
-            type="button"
+          <Link
+            href="/settings"
             className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#23232a] bg-bg-secondary text-ink-secondary transition-colors hover:text-ink"
             aria-label="Notifications"
           >
             <Bell className="h-4 w-4" />
             <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-gold animate-pulse-soft" />
-          </button>
+          </Link>
 
-          <div className="flex items-center gap-2 rounded-xl border border-[#23232a] bg-bg-secondary px-2 py-1.5">
+          <Link
+            href="/settings"
+            className="flex items-center gap-2 rounded-xl border border-[#23232a] bg-bg-secondary px-2 py-1.5 transition-colors hover:border-[#2f2f38]"
+            aria-label="Profile and settings"
+          >
             <div className="grid h-7 w-7 place-items-center rounded-md border border-[#2f2f38] bg-bg shadow-[0_0_0_1px_rgba(212,175,55,0.18)_inset] score-num text-xs font-bold text-gold">
               {mockAthlete.avatarInitials}
             </div>
@@ -69,11 +79,11 @@ export function Header({ title, subtitle }: HeaderProps) {
                 {mockAthlete.school} · {mockAthlete.sport}
               </div>
             </div>
-          </div>
+          </Link>
         </div>
       </div>
 
-      {(title || subtitle) && (
+      {!hideTitleOnMobile && (title || subtitle) && (
         <div className="border-t border-[#23232a] px-4 py-3 sm:px-6 lg:hidden">
           {title && (
             <h1 className="text-lg font-semibold tracking-tight text-ink">

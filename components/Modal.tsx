@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -30,10 +30,17 @@ export function Modal({
   footer,
   maxWidthClassName = "max-w-2xl",
 }: ModalProps) {
+  // Keep the latest onClose in a ref so the scroll-lock effect can depend only
+  // on `open`. Otherwise a new onClose identity each render re-runs the effect
+  // and re-captures the (already "hidden") overflow, leaving the page
+  // scroll-locked after close.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     }
     window.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
@@ -42,7 +49,7 @@ export function Modal({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
