@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
+  ArrowLeft,
   Bell,
   CircleDollarSign,
   LogOut,
@@ -130,6 +132,17 @@ export default function SettingsPage() {
       title="Settings"
       subtitle="Update your inputs. Plans recompute instantly."
     >
+      {/* Top-of-page back control — no scroll required */}
+      <div className="mb-5">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-bg-card/60 px-3 py-1.5 text-xs font-medium text-ink-secondary transition-colors hover:border-white/20 hover:text-ink"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to Dashboard
+        </Link>
+      </div>
+
       <div className="space-y-6">
         {/* ----- Athlete profile ----- */}
         <SectionCard
