@@ -40,7 +40,8 @@ settings/           "More Actions" nav hub (bottom-nav "More" tab), with a
                     recurring-deposit/, risk-profile/, security/ (stub),
                     privacy/ (legal + reset demo data), faq/ (accordion),
                     preferences/ (notifications), feedback/ (mock form, no
-                    persistence). Languages is an inline EN/ES segmented
+                    persistence; three fields — what feature, what's working,
+                    what's wrong). Languages is an inline EN/ES segmented
                     toggle (both options always visible) on the hub itself,
                     not a page — cosmetic, no real translation. Section
                     headers (Account, Investing, etc.) are plain text, no
@@ -213,6 +214,12 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 ## Features shipped
 Appended after every merge. Newest first.
 
+- 2026-07-17 — Structured feedback form. Split the single free-text feedback
+  textarea into three fields: "What feature?" (plain text input), "What's
+  working?" and "What's wrong?" (textareas). Submit requires the feature field
+  plus at least one of the two textareas (not both). Still a pure mock — no
+  backend, no persistence, same 2.2s "Thanks — we got it." fake-submit as
+  before. Key file: `app/settings/feedback/page.tsx`.
 - 2026-07-17 — More Actions hub visual tidy-up + feedback button. Removed
   section-header icons (item cards keep theirs) and the secondary hint text
   under each card. Replaced the single flipping Languages pill with a
