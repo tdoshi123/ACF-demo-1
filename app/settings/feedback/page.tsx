@@ -8,13 +8,20 @@ import PrimaryButton from "@/components/PrimaryButton";
 import SectionCard from "@/components/SectionCard";
 
 export default function FeedbackPage() {
-  const [feedback, setFeedback] = useState("");
+  const [feature, setFeature] = useState("");
+  const [working, setWorking] = useState("");
+  const [wrong, setWrong] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
+  const canSubmit =
+    feature.trim() !== "" && (working.trim() !== "" || wrong.trim() !== "");
+
   function submit() {
-    if (feedback.trim() === "") return;
+    if (!canSubmit) return;
     setSubmitted(true);
-    setFeedback("");
+    setFeature("");
+    setWorking("");
+    setWrong("");
     setTimeout(() => setSubmitted(false), 2200);
   }
 
@@ -32,15 +39,65 @@ export default function FeedbackPage() {
 
       <SectionCard
         eyebrow="Feedback"
-        title="Tell us what's working"
+        title="Tell us what's working — and what's not"
       >
-        <textarea
-          value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
-          placeholder="What's working? What's not? Tell us."
-          rows={5}
-          className="w-full resize-none rounded-2xl border border-white/10 bg-bg-card/70 px-4 py-3 text-sm text-ink outline-none placeholder:text-ink-muted focus:border-white/20"
-        />
+        <div className="space-y-6">
+          <div>
+            <label
+              htmlFor="feature"
+              className="text-xs font-medium text-ink-secondary"
+            >
+              What feature?{" "}
+              <span className="text-ink-muted">
+                (fill in at least one of the fields below)
+              </span>
+            </label>
+            <div className="mt-2 flex items-center gap-2 rounded-2xl border border-white/10 bg-bg-card/70 px-4 focus-within:border-white/20">
+              <input
+                id="feature"
+                type="text"
+                placeholder="Which feature or page?"
+                value={feature}
+                onChange={(e) => setFeature(e.target.value)}
+                className="w-full bg-transparent py-3 text-sm text-ink outline-none placeholder:text-ink-muted"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor="working"
+              className="text-xs font-medium text-ink-secondary"
+            >
+              What&apos;s working?
+            </label>
+            <textarea
+              id="working"
+              value={working}
+              onChange={(e) => setWorking(e.target.value)}
+              placeholder="What's going well?"
+              rows={4}
+              className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-bg-card/70 px-4 py-3 text-sm text-ink outline-none placeholder:text-ink-muted focus:border-white/20"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="wrong"
+              className="text-xs font-medium text-ink-secondary"
+            >
+              What&apos;s wrong?
+            </label>
+            <textarea
+              id="wrong"
+              value={wrong}
+              onChange={(e) => setWrong(e.target.value)}
+              placeholder="What's not working, or could be better?"
+              rows={4}
+              className="mt-2 w-full resize-none rounded-2xl border border-white/10 bg-bg-card/70 px-4 py-3 text-sm text-ink outline-none placeholder:text-ink-muted focus:border-white/20"
+            />
+          </div>
+        </div>
 
         <div className="mt-4 flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-end">
           {submitted && (
@@ -48,7 +105,7 @@ export default function FeedbackPage() {
               Thanks — we got it.
             </span>
           )}
-          <PrimaryButton onClick={submit} disabled={feedback.trim() === ""}>
+          <PrimaryButton onClick={submit} disabled={!canSubmit}>
             Submit feedback
           </PrimaryButton>
         </div>
