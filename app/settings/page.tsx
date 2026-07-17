@@ -427,7 +427,7 @@ export default function SettingsPage() {
         {/* ----- Privacy & data ----- */}
         <SectionCard eyebrow="Privacy & data" title="Your data is yours">
           <DisclaimerBox>
-            All saved values live in this browser's local storage only. There is
+            All saved values live in this browser&apos;s local storage only. There is
             no backend, no shared profile, and no money movement.
           </DisclaimerBox>
 

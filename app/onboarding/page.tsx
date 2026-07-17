@@ -663,7 +663,7 @@ function AuthErrorCard({ onRetry }: { onRetry: () => void }) {
         <CircleAlert className="mt-0.5 h-5 w-5 shrink-0 text-danger" />
         <div className="flex-1">
           <div className="text-sm font-semibold text-ink">
-            We couldn't verify your Teamworks account
+            We couldn&apos;t verify your Teamworks account
           </div>
           <p className="mt-1 text-xs text-ink-secondary">
             Athlete Collective Fund is athlete-only and requires a verified
@@ -751,7 +751,6 @@ const SAVINGS_EXAMPLES = [
 ];
 
 // Retained for a future "level up" tier — no longer in the active STEPS sequence.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function RuleStep() {
   return (
     <SectionCard
