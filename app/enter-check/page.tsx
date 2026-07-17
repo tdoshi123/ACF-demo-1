@@ -21,7 +21,7 @@ interface SplitRow {
   /** Matching decimal field on `Program`. */
   programKey: keyof Pick<
     Program,
-    "taxes" | "lifestyleCap" | "emergency" | "investing" | "controlledRisk" | "kids"
+    "taxes" | "lifestyleCap" | "emergency" | "investing" | "kids"
   >;
   label: string;
   hint: string;
@@ -34,7 +34,6 @@ const SPLIT_ROWS: SplitRow[] = [
   { key: "lifestyle", programKey: "lifestyleCap", label: "Lifestyle", hint: "Spendable cap", tone: "ink" },
   { key: "emergency", programKey: "emergency", label: "Emergency", hint: "Untouchable", tone: "green" },
   { key: "investing", programKey: "investing", label: "Investing", hint: "Compounding", tone: "green" },
-  { key: "controlledRisk", programKey: "controlledRisk", label: "Controlled Risk", hint: "Bets within structure", tone: "gold" },
   { key: "kids", programKey: "kids", label: "Kids", hint: "Generational lock", tone: "gold", hideIfZero: true },
 ];
 
@@ -333,7 +332,7 @@ export default function EnterCheckPage() {
                   <div>
                     <div className="text-eyebrow text-success">Retained total</div>
                     <div className="mt-1 text-[11px] text-ink-secondary">
-                      Emergency + Investing + Risk + Kids
+                      Emergency + Investing + Kids
                     </div>
                   </div>
                   <div
@@ -353,13 +352,12 @@ export default function EnterCheckPage() {
                       <SegBar value={split.lifestyle} total={numericAmount} className="bg-ink/70" />
                       <SegBar value={split.emergency} total={numericAmount} className="bg-success" />
                       <SegBar value={split.investing} total={numericAmount} className="bg-success/70" />
-                      <SegBar value={split.controlledRisk} total={numericAmount} className="bg-gold" />
                       <SegBar value={split.kids} total={numericAmount} className="bg-gold/60" />
                     </>
                   )}
                 </div>
                 <div className="mt-2 flex items-center justify-between text-[10px] uppercase tracking-wider text-ink-muted">
-                  <span>Tax · Lifestyle · Save · Invest · Risk</span>
+                  <span>Tax · Lifestyle · Save · Invest</span>
                   <span>100%</span>
                 </div>
               </SectionCard>

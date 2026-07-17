@@ -5,7 +5,7 @@
  * percentage fields are decimals (0.25 == 25%) so callers can multiply
  * directly against income / check amounts without any conversion step.
  *
- * Invariant: taxes + lifestyleCap + emergency + investing + controlledRisk + kids
+ * Invariant: taxes + lifestyleCap + emergency + investing + kids
  * equals 1.00 for every program. retentionTarget == 1 - lifestyleCap.
  */
 
@@ -17,7 +17,6 @@ export interface Program {
   lifestyleCap: number;
   emergency: number;
   investing: number;
-  controlledRisk: number;
   kids: number;
   purpose: string;
   color: string;
@@ -31,8 +30,7 @@ export const PROGRAMS: Program[] = [
     taxes: 0.25,
     lifestyleCap: 0.46,
     emergency: 0.15,
-    investing: 0.1,
-    controlledRisk: 0.04,
+    investing: 0.14,
     kids: 0.0,
     purpose: "Build discipline, structure, and stability.",
     color: "#22c55e",
@@ -44,8 +42,7 @@ export const PROGRAMS: Program[] = [
     taxes: 0.25,
     lifestyleCap: 0.38,
     emergency: 0.12,
-    investing: 0.2,
-    controlledRisk: 0.05,
+    investing: 0.25,
     kids: 0.0,
     purpose: "Maximize the athlete earning window.",
     color: "#d4af37",
@@ -57,8 +54,7 @@ export const PROGRAMS: Program[] = [
     taxes: 0.25,
     lifestyleCap: 0.28,
     emergency: 0.1,
-    investing: 0.3,
-    controlledRisk: 0.05,
+    investing: 0.35,
     kids: 0.02,
     purpose: "Build generational wealth and long-term durability.",
     color: "#e5e4e2",

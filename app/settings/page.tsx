@@ -44,6 +44,14 @@ interface NotificationPrefs {
   education: boolean;
 }
 
+const RISK_PROFILE_ORDER: RiskProfile[] = [
+  "conservative",
+  "moderately_conservative",
+  "balanced",
+  "growth",
+  "aggressive_growth",
+];
+
 const DEFAULT_PREFS: NotificationPrefs = {
   deposit: true,
   education: false,
@@ -94,6 +102,11 @@ export default function SettingsPage() {
     writeJSON(StorageKeys.notifications, prefs);
     setSavedToast(true);
     setTimeout(() => setSavedToast(false), 2200);
+  }
+
+  function selectRisk(r: RiskProfile) {
+    setRisk(r);
+    writeJSON(StorageKeys.risk, r);
   }
 
   function togglePause() {
@@ -381,8 +394,58 @@ export default function SettingsPage() {
             ))}
           </div>
 
+          <div className="mt-5">
+            <div className="text-xs font-medium text-ink-secondary">
+              Set your risk profile
+            </div>
+            <div className="mt-2 grid gap-2.5 sm:grid-cols-2">
+              {RISK_PROFILE_ORDER.map((r) => {
+                const p = portfolioByRisk[r];
+                const active = risk === r;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => selectRisk(r)}
+                    aria-pressed={active}
+                    className={[
+                      "w-full rounded-xl border p-3.5 text-left transition-all",
+                      active
+                        ? "border-gold/40 bg-gold/[0.07] shadow-gold"
+                        : "border-white/10 bg-bg-card/70 hover:border-white/20",
+                    ].join(" ")}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-eyebrow">{riskProfileLabel(r)}</div>
+                        <div className="mt-1 text-sm font-semibold text-ink">
+                          {p.name}
+                        </div>
+                        <div className="mt-0.5 text-[11px] text-ink-secondary">
+                          {p.expectedReturn} · {p.volatility}
+                        </div>
+                      </div>
+                      {active && <BadgePill tone="gold">Selected</BadgePill>}
+                    </div>
+                    <div className="mt-2.5 flex h-1.5 overflow-hidden rounded-full bg-white/5">
+                      {p.allocation.map((slice) => (
+                        <div
+                          key={slice.label}
+                          title={`${slice.label} ${slice.percent}%`}
+                          style={{
+                            width: `${slice.percent}%`,
+                            background: slice.color,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="mt-5 flex flex-col items-stretch gap-2 sm:flex-row sm:justify-end">
-            <SecondaryButton href="/portfolio">Change profile</SecondaryButton>
             <SecondaryButton href="/onboarding">Retake quiz</SecondaryButton>
           </div>
         </SectionCard>

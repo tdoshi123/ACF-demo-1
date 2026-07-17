@@ -23,7 +23,6 @@ function makeSplit(overrides: Partial<IncomeSplit> = {}): IncomeSplit {
     lifestyle: 0,
     emergency: 0,
     investing: 0,
-    controlledRisk: 0,
     kids: 0,
     retainedTotal: 0,
     ...overrides,
@@ -59,12 +58,9 @@ describe("splitIncome", () => {
     expect(split.lifestyle).toBeCloseTo(1000 * nilFoundation.lifestyleCap);
     expect(split.emergency).toBeCloseTo(1000 * nilFoundation.emergency);
     expect(split.investing).toBeCloseTo(1000 * nilFoundation.investing);
-    expect(split.controlledRisk).toBeCloseTo(
-      1000 * nilFoundation.controlledRisk,
-    );
     expect(split.kids).toBeCloseTo(1000 * nilFoundation.kids);
     expect(split.retainedTotal).toBeCloseTo(
-      split.emergency + split.investing + split.controlledRisk + split.kids,
+      split.emergency + split.investing + split.kids,
     );
   });
 
@@ -72,15 +68,24 @@ describe("splitIncome", () => {
     const split = splitIncome(1000, nilFoundation);
 
     expect(split.retainedTotal).not.toBeCloseTo(
-      split.taxes + split.emergency + split.investing + split.controlledRisk + split.kids,
+      split.taxes + split.emergency + split.investing + split.kids,
     );
     expect(split.retainedTotal).toBeCloseTo(
-      split.emergency + split.investing + split.controlledRisk + split.kids,
+      split.emergency + split.investing + split.kids,
     );
   });
 
   it("returns the zero split when program is null", () => {
     expect(splitIncome(1000, null)).toEqual(makeSplit());
+  });
+
+  it("never produces a controlledRisk key on the split", () => {
+    const split = splitIncome(1000, nilFoundation);
+
+    expect(Object.keys(split)).not.toContain("controlledRisk");
+    expect(
+      (split as unknown as Record<string, unknown>).controlledRisk,
+    ).toBeUndefined();
   });
 
   it.each([
@@ -126,9 +131,8 @@ describe("calculateTotals", () => {
       lifestyle: 111,
       emergency: 222,
       investing: 333,
-      controlledRisk: 44,
       kids: 5,
-      retainedTotal: 222 + 333 + 44 + 5,
+      retainedTotal: 222 + 333 + 5,
     });
     const event = makeEvent({
       amount: 1000,
@@ -142,7 +146,6 @@ describe("calculateTotals", () => {
     expect(totals.totalLifestyleAllocated).toBeCloseTo(storedSplit.lifestyle);
     expect(totals.totalEmergency).toBeCloseTo(storedSplit.emergency);
     expect(totals.totalInvesting).toBeCloseTo(storedSplit.investing);
-    expect(totals.totalControlledRisk).toBeCloseTo(storedSplit.controlledRisk);
     expect(totals.totalKids).toBeCloseTo(storedSplit.kids);
     expect(totals.totalRetained).toBeCloseTo(storedSplit.retainedTotal);
   });
@@ -171,6 +174,42 @@ describe("calculateTotals", () => {
     expect(totals.totalLifestyleSpent).toBeCloseTo(50);
   });
 
+  it("ignores a stale controlledRisk key on a historical stored split (edge case 6)", () => {
+    // Older localStorage IncomeEvents may still carry a controlledRisk key
+    // from before the field was removed from IncomeSplit. resolveEventSplit
+    // uses the stored split as-is, and calculateTotals must not read or sum
+    // that extra key.
+    const staleSplit = {
+      taxes: 250,
+      lifestyle: 380,
+      emergency: 150,
+      investing: 200,
+      kids: 0,
+      controlledRisk: 20,
+      retainedTotal: 350,
+    } as unknown as IncomeSplit;
+    const event = makeEvent({ amount: 1000, split: staleSplit });
+
+    const totals = calculateTotals([event], []);
+
+    expect(totals.totalRetained).toBeCloseTo(350);
+    expect(
+      (totals as unknown as Record<string, unknown>).totalControlledRisk,
+    ).toBeUndefined();
+    expect(Object.keys(totals)).not.toContain("totalControlledRisk");
+  });
+
+  it("does not define totalControlledRisk on aggregated totals", () => {
+    const event = makeEvent({
+      amount: 1000,
+      split: splitIncome(1000, nilFoundation),
+    });
+
+    const totals = calculateTotals([event], []);
+
+    expect(Object.keys(totals)).not.toContain("totalControlledRisk");
+  });
+
   it("handles non-array input without throwing", () => {
     const totals = calculateTotals(
       undefined as unknown as IncomeEvent[],
@@ -184,7 +223,6 @@ describe("calculateTotals", () => {
       totalLifestyleSpent: 0,
       totalEmergency: 0,
       totalInvesting: 0,
-      totalControlledRisk: 0,
       totalKids: 0,
       totalRetained: 0,
       lifestyleRemaining: 0,

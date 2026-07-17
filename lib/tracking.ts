@@ -11,7 +11,7 @@
  *   - Amounts are raw dollars; no rounding happens here. Rounding/formatting
  *     is a display concern (see `formatCurrency` in lib/calculations.ts).
  *   - "Retained" = capital that stays under the athlete's control after a
- *     check clears: emergency + investing + controlledRisk + kids. Taxes are
+ *     check clears: emergency + investing + kids. Taxes are
  *     NOT retained — that money leaves the household.
  */
 
@@ -34,7 +34,6 @@ const ZERO_SPLIT: IncomeSplit = {
   lifestyle: 0,
   emergency: 0,
   investing: 0,
-  controlledRisk: 0,
   kids: 0,
   retainedTotal: 0,
 };
@@ -46,7 +45,6 @@ const ZERO_TOTALS: TrackingTotals = {
   totalLifestyleSpent: 0,
   totalEmergency: 0,
   totalInvesting: 0,
-  totalControlledRisk: 0,
   totalKids: 0,
   totalRetained: 0,
   lifestyleRemaining: 0,
@@ -69,7 +67,6 @@ export function splitIncome(
   const lifestyle = value * (Number(program.lifestyleCap) || 0);
   const emergency = value * (Number(program.emergency) || 0);
   const investing = value * (Number(program.investing) || 0);
-  const controlledRisk = value * (Number(program.controlledRisk) || 0);
   const kids = value * (Number(program.kids) || 0);
 
   return {
@@ -77,9 +74,8 @@ export function splitIncome(
     lifestyle,
     emergency,
     investing,
-    controlledRisk,
     kids,
-    retainedTotal: emergency + investing + controlledRisk + kids,
+    retainedTotal: emergency + investing + kids,
   };
 }
 
@@ -117,7 +113,6 @@ export function calculateTotals(
     totals.totalLifestyleAllocated += split.lifestyle;
     totals.totalEmergency += split.emergency;
     totals.totalInvesting += split.investing;
-    totals.totalControlledRisk += split.controlledRisk;
     totals.totalKids += split.kids;
     totals.totalRetained += split.retainedTotal;
   }

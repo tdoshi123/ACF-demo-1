@@ -162,7 +162,7 @@ export interface RiskAnswer {
 
 /**
  * The program-defined breakdown of a single check. Every field is a dollar
- * amount. `retainedTotal` = emergency + investing + controlledRisk + kids
+ * amount. `retainedTotal` = emergency + investing + kids
  * (taxes are NOT retained — that money leaves the household).
  */
 export interface IncomeSplit {
@@ -170,7 +170,6 @@ export interface IncomeSplit {
   lifestyle: number;
   emergency: number;
   investing: number;
-  controlledRisk: number;
   kids: number;
   retainedTotal: number;
 }
@@ -214,7 +213,6 @@ export interface TrackingTotals {
   totalLifestyleSpent: number;
   totalEmergency: number;
   totalInvesting: number;
-  totalControlledRisk: number;
   totalKids: number;
   totalRetained: number;
   lifestyleRemaining: number;

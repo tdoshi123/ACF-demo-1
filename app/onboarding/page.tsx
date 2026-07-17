@@ -46,8 +46,17 @@ import type {
   DepositFrequency,
   FundingSource,
   RiskAnswer,
+  RiskProfile,
   WalletConnectionState,
 } from "@/lib/types";
+
+const RISK_PROFILE_ORDER: RiskProfile[] = [
+  "conservative",
+  "moderately_conservative",
+  "balanced",
+  "growth",
+  "aggressive_growth",
+];
 
 /* ----------------------------------------------------------------------------
  * Steps + progress
@@ -203,12 +212,22 @@ export default function OnboardingPage() {
 
   // Step 7 — risk
   const [riskAnswers, setRiskAnswers] = useState<RiskAnswer[]>([]);
+  const [selectedRisk, setSelectedRisk] = useState<RiskProfile | null>(null);
+
+  const allRiskAnswered = riskAnswers.length === RISK_QUESTIONS.length;
 
   const recommendedRisk = useMemo(
     () => recommendPortfolioFromRiskAnswers(riskAnswers),
     [riskAnswers],
   );
-  const portfolio = portfolioByRisk[recommendedRisk];
+
+  // User's explicit pick wins; otherwise fall back to the quiz recommendation
+  // once every question has been answered. Fine-tune behavior: the direct
+  // selector always wins once touched.
+  const effectiveRisk: RiskProfile | null =
+    selectedRisk ?? (allRiskAnswered ? recommendedRisk : null);
+
+  const portfolio = portfolioByRisk[effectiveRisk ?? "balanced"];
 
   // Monthly equivalent for the deposit warning calculator
   const monthlyEquivalent = useMemo(() => {
@@ -234,8 +253,6 @@ export default function OnboardingPage() {
    * Step gating
    * ------------------------------------------------------------------------ */
 
-  const allRiskAnswered = riskAnswers.length === RISK_QUESTIONS.length;
-
   function canAdvance(): boolean {
     switch (step) {
       case "welcome":
@@ -251,7 +268,7 @@ export default function OnboardingPage() {
       case "deposit":
         return depositAmount > 0 && Boolean(startDate);
       case "risk":
-        return allRiskAnswered;
+        return effectiveRisk !== null;
       case "done":
         return true;
     }
@@ -311,7 +328,10 @@ export default function OnboardingPage() {
       fundingSource,
       startDate,
     });
-    writeJSON(StorageKeys.risk, recommendedRisk);
+    // Fall back to "balanced" if somehow reached with no explicit or
+    // quiz-derived risk (shouldn't happen given the "risk" step gate) —
+    // never write null to StorageKeys.risk.
+    writeJSON(StorageKeys.risk, effectiveRisk ?? "balanced");
     writeJSON(StorageKeys.riskAnswers, riskAnswers);
     writeJSON(StorageKeys.authed, true);
     writeJSON(StorageKeys.onboardingComplete, true);
@@ -390,8 +410,9 @@ export default function OnboardingPage() {
             answers={riskAnswers}
             onAnswer={setRiskAnswer}
             recommendedRisk={recommendedRisk}
-            portfolio={portfolio}
             allAnswered={allRiskAnswered}
+            selected={selectedRisk}
+            onSelect={setSelectedRisk}
           />
         )}
 
@@ -406,7 +427,7 @@ export default function OnboardingPage() {
             frequency={frequency}
             fundingSource={fundingSource}
             startDate={startDate}
-            recommendedRisk={recommendedRisk}
+            effectiveRisk={effectiveRisk}
             portfolio={portfolio}
           />
         )}
@@ -949,10 +970,6 @@ function ProgramCard({
           value={formatPct(program.lifestyleCap)}
         />
         <ProgramStat label="Emergency" value={formatPct(program.emergency)} />
-        <ProgramStat
-          label="Controlled risk"
-          value={formatPct(program.controlledRisk)}
-        />
         {program.kids > 0 && (
           <ProgramStat label="Kids" value={formatPct(program.kids)} />
         )}
@@ -1011,10 +1028,6 @@ function IncomeStep({
           label: "Investing",
           amount: income * program.investing,
           highlight: true,
-        },
-        {
-          label: "Controlled risk",
-          amount: income * program.controlledRisk,
         },
         ...(program.kids > 0
           ? [{ label: "Kids", amount: income * program.kids }]
@@ -1611,100 +1624,110 @@ function RiskStep({
   answers,
   onAnswer,
   recommendedRisk,
-  portfolio,
   allAnswered,
+  selected,
+  onSelect,
 }: {
   answers: RiskAnswer[];
   onAnswer: (id: string, value: number) => void;
   recommendedRisk: ReturnType<typeof recommendPortfolioFromRiskAnswers>;
-  portfolio: (typeof portfolioByRisk)[keyof typeof portfolioByRisk];
   allAnswered: boolean;
+  selected: RiskProfile | null;
+  onSelect: (r: RiskProfile) => void;
 }) {
+  const [showQuiz, setShowQuiz] = useState(false);
+  // Pre-select the quiz recommendation once every question is answered, as
+  // long as the athlete hasn't explicitly picked yet — any explicit click on
+  // a card wins from then on (fine-tune behavior).
+  const recommendedCard = selected === null && allAnswered ? recommendedRisk : null;
+
   return (
     <SectionCard
       eyebrow="Step 7"
       title="Risk profile"
-      subtitle="Five quick questions. We use them to recommend one of five model portfolios."
+      subtitle="Choose the investing risk profile that fits you. Not sure? Take the quick quiz for a recommendation."
       elevated
     >
       <div className="space-y-6">
-        {RISK_QUESTIONS.map((q, qIdx) => {
-          const selected = answers.find((a) => a.questionId === q.id);
-          return (
-            <div key={q.id}>
-              <div className="flex items-baseline gap-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-                  Q{qIdx + 1}
-                </span>
-                <div className="text-sm font-medium text-ink">{q.prompt}</div>
-              </div>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                {q.options.map((opt) => {
-                  const active = selected?.value === opt.value;
-                  return (
-                    <button
-                      key={opt.label}
-                      onClick={() => onAnswer(q.id, opt.value)}
-                      className={[
-                        "rounded-xl border px-3 py-2.5 text-left text-sm transition-colors",
-                        active
-                          ? "border-gold/50 bg-gold/[0.08] text-ink"
-                          : "border-white/10 bg-bg-card/60 text-ink-secondary hover:border-white/20 hover:text-ink",
-                      ].join(" ")}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          {RISK_PROFILE_ORDER.map((r) => (
+            <RiskProfileOption
+              key={r}
+              risk={r}
+              active={selected === r}
+              recommended={recommendedCard === r}
+              onClick={() => onSelect(r)}
+            />
+          ))}
+        </div>
 
-        {allAnswered && (
-          <div className="rounded-2xl border border-gold/30 bg-gold/[0.06] p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-eyebrow text-gold">
-                  Recommended portfolio
-                </div>
-                <div className="mt-1 text-xl font-semibold text-ink">
-                  {riskProfileLabel(recommendedRisk)} · {portfolio.name}
-                </div>
-                <div className="text-xs text-ink-secondary">
-                  {portfolio.expectedReturn} · {portfolio.volatility} volatility
-                </div>
+        <div className="rounded-2xl border border-white/10 bg-bg-card/60 p-4">
+          <button
+            type="button"
+            onClick={() => setShowQuiz((v) => !v)}
+            className="flex w-full items-center justify-between gap-3 text-left"
+          >
+            <div>
+              <div className="text-sm font-semibold text-ink">
+                Not sure? Get a recommendation
               </div>
-              <Target className="h-7 w-7 text-gold" />
+              <div className="mt-0.5 text-xs text-ink-secondary">
+                Five quick questions. We&apos;ll pre-select a profile above —
+                you can still fine-tune it afterward.
+              </div>
             </div>
-            <p className="mt-3 text-sm text-ink-secondary">
-              {portfolio.description}
-            </p>
+            <Target className="h-5 w-5 shrink-0 text-gold" />
+          </button>
 
-            <div className="mt-4 flex h-2 overflow-hidden rounded-full bg-white/5">
-              {portfolio.allocation.map((slice) => (
-                <div
-                  key={slice.label}
-                  style={{
-                    width: `${slice.percent}%`,
-                    background: slice.color,
-                  }}
-                />
-              ))}
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-ink-secondary sm:grid-cols-4">
-              {portfolio.allocation.map((slice) => (
-                <div key={slice.label} className="flex items-center gap-1.5">
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ background: slice.color }}
-                  />
-                  {slice.label} {slice.percent}%
+          {showQuiz && (
+            <div className="mt-5 space-y-6">
+              {RISK_QUESTIONS.map((q, qIdx) => {
+                const answer = answers.find((a) => a.questionId === q.id);
+                return (
+                  <div key={q.id}>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                        Q{qIdx + 1}
+                      </span>
+                      <div className="text-sm font-medium text-ink">
+                        {q.prompt}
+                      </div>
+                    </div>
+                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                      {q.options.map((opt) => {
+                        const active = answer?.value === opt.value;
+                        return (
+                          <button
+                            key={opt.label}
+                            onClick={() => onAnswer(q.id, opt.value)}
+                            className={[
+                              "rounded-xl border px-3 py-2.5 text-left text-sm transition-colors",
+                              active
+                                ? "border-gold/50 bg-gold/[0.08] text-ink"
+                                : "border-white/10 bg-bg-card/60 text-ink-secondary hover:border-white/20 hover:text-ink",
+                            ].join(" ")}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {allAnswered && (
+                <div className="rounded-2xl border border-gold/30 bg-gold/[0.06] p-4 text-sm text-ink">
+                  Quiz recommends{" "}
+                  <span className="font-semibold text-gold">
+                    {riskProfileLabel(recommendedRisk)}
+                  </span>
+                  . Selected above{selected ? " — your pick overrides this." : "."}
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <DisclaimerBox tone="warning">
           Portfolio values can go down. Past performance does not guarantee
@@ -1712,6 +1735,61 @@ function RiskStep({
         </DisclaimerBox>
       </div>
     </SectionCard>
+  );
+}
+
+function RiskProfileOption({
+  risk,
+  active,
+  recommended,
+  onClick,
+}: {
+  risk: RiskProfile;
+  active: boolean;
+  recommended: boolean;
+  onClick: () => void;
+}) {
+  const p = portfolioByRisk[risk];
+  const selectedVisual = active || recommended;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={[
+        "w-full rounded-xl border p-3.5 text-left transition-all",
+        selectedVisual
+          ? "border-gold/60 bg-gold/[0.06] shadow-gold"
+          : "border-white/10 bg-bg-card/60 hover:border-white/20",
+      ].join(" ")}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-eyebrow">{riskProfileLabel(risk)}</div>
+          <div className="mt-1 text-sm font-semibold text-ink">{p.name}</div>
+          <div className="mt-0.5 text-[11px] text-ink-secondary">
+            {p.expectedReturn} · {p.volatility}
+          </div>
+        </div>
+        {active ? (
+          <BadgePill tone="gold">Selected</BadgePill>
+        ) : recommended ? (
+          <BadgePill tone="gold">Recommended</BadgePill>
+        ) : null}
+      </div>
+      <div className="mt-2.5 flex h-1.5 overflow-hidden rounded-full bg-white/5">
+        {p.allocation.map((slice) => (
+          <div
+            key={slice.label}
+            title={`${slice.label} ${slice.percent}%`}
+            style={{
+              width: `${slice.percent}%`,
+              background: slice.color,
+            }}
+          />
+        ))}
+      </div>
+    </button>
   );
 }
 
@@ -1729,7 +1807,7 @@ function DoneStep({
   frequency,
   fundingSource,
   startDate,
-  recommendedRisk,
+  effectiveRisk,
   portfolio,
 }: {
   identity: AthleteIdentity | null;
@@ -1741,7 +1819,7 @@ function DoneStep({
   frequency: DepositFrequency;
   fundingSource: FundingSource;
   startDate: string;
-  recommendedRisk: ReturnType<typeof recommendPortfolioFromRiskAnswers>;
+  effectiveRisk: RiskProfile | null;
   portfolio: (typeof portfolioByRisk)[keyof typeof portfolioByRisk];
 }) {
   const fundingLabel =
@@ -1805,7 +1883,7 @@ function DoneStep({
           <SummaryCard
             icon={<Shield className="h-4 w-4 text-gold" />}
             label="Risk profile"
-            primary={riskProfileLabel(recommendedRisk)}
+            primary={effectiveRisk ? riskProfileLabel(effectiveRisk) : "—"}
             secondary={portfolio.name}
           />
           <SummaryCard
