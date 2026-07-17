@@ -88,9 +88,14 @@ athlete's selected **program**. The split is stored on the event — historical
 checks keep their original allocation even if program percentages change later.
 Never recompute a stored split.
 
-Buckets: `taxes`, `lifestyle`, `emergency`, `investing`, `controlledRisk`, `kids`.
-**Retained** = emergency + investing + controlledRisk + kids. Taxes are NOT
-retained — that money leaves the household.
+Buckets: `taxes`, `lifestyle`, `emergency`, `investing`, `kids`.
+**Retained** = emergency + investing + kids. Taxes are NOT retained — that
+money leaves the household.
+
+Investment risk is a separate concept from the split buckets: `RiskProfile`
+(`conservative` … `aggressive_growth`, `StorageKeys.risk`) picks the athlete's
+model portfolio and is user-set directly (onboarding, Settings, Portfolio),
+not derived from the check split.
 
 Every `SpendingLog` draws from the lifestyle bucket.
 
@@ -132,6 +137,14 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
   `npm run lint`, so a real config was required — an unconfigured
   `next lint` opens an interactive prompt that would hang an agent
   mid-run.
+- 2026-07-16 — Removed the `controlledRisk` split bucket entirely, folding its
+  percentage into `investing` on all three programs (NIL 0.10→0.14, Prime
+  0.20→0.25, Legacy 0.30→0.35). This supersedes the earlier bucket-list
+  decision above. Reasoning: `controlledRisk` conflated a program-fixed money
+  slice with the athlete's investment risk profile — the athlete now sets
+  their own `RiskProfile` directly (onboarding, Settings, Portfolio) instead
+  of having a risk allocation baked into the program split. Every program
+  still sums to 1.00.
 
 ## Known gaps
 - No error boundaries.
@@ -158,3 +171,12 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 
 ## Features shipped
 Appended after every merge. Newest first.
+
+- 2026-07-16 — Athlete-set risk profile + controlled-risk removal. Added a
+  direct 5-option risk-profile selector to onboarding (quiz kept as an
+  optional recommendation the selector can override) and to Settings, with
+  the choice reflected on onboarding's Confirm step. Removed the
+  `controlledRisk` money bucket from the split model and UI (Enter Check,
+  onboarding Program Select, onboarding Income step). Key files:
+  `app/onboarding/page.tsx`, `app/settings/page.tsx`, `app/enter-check/page.tsx`,
+  `lib/programs.ts`, `lib/types.ts`, `lib/tracking.ts`.
