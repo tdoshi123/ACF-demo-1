@@ -32,19 +32,23 @@ import ProgressBar from "@/components/ProgressBar";
 import SectionCard from "@/components/SectionCard";
 import BadgePill from "@/components/BadgePill";
 import DisclaimerBox from "@/components/DisclaimerBox";
+import AllocationEditor from "@/components/AllocationEditor";
 import {
   determineDepositWarning,
   formatCurrency,
   recommendPortfolioFromRiskAnswers,
   riskProfileLabel,
+  sumSlicePercents,
 } from "@/lib/calculations";
 import { portfolioByRisk } from "@/lib/mockData";
 import { getProgramById, PROGRAMS, type Program } from "@/lib/programs";
 import { StorageKeys, writeJSON } from "@/lib/storage";
 import type {
   AthleteIdentity,
+  CustomAllocation,
   DepositFrequency,
   FundingSource,
+  PortfolioSlice,
   RiskAnswer,
   RiskProfile,
   WalletConnectionState,
@@ -229,6 +233,39 @@ export default function OnboardingPage() {
 
   const portfolio = portfolioByRisk[effectiveRisk ?? "balanced"];
 
+  // Fine-tune allocation draft. `null` means "not fine-tuned; use the
+  // effective preset". Synced to the effective preset whenever it changes,
+  // unless the athlete has actively edited a slice.
+  const [draftAllocation, setDraftAllocation] = useState<
+    PortfolioSlice[] | null
+  >(null);
+  const [allocationTouched, setAllocationTouched] = useState(false);
+
+  useEffect(() => {
+    if (!allocationTouched) {
+      setDraftAllocation(
+        effectiveRisk
+          ? portfolioByRisk[effectiveRisk].allocation.map((s) => ({ ...s }))
+          : null,
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveRisk]);
+
+  function handleAllocationChange(slices: PortfolioSlice[]) {
+    setAllocationTouched(true);
+    setDraftAllocation(slices);
+  }
+
+  function resetAllocation() {
+    setAllocationTouched(false);
+    setDraftAllocation(
+      effectiveRisk
+        ? portfolioByRisk[effectiveRisk].allocation.map((s) => ({ ...s }))
+        : null,
+    );
+  }
+
   // Monthly equivalent for the deposit warning calculator
   const monthlyEquivalent = useMemo(() => {
     if (frequency === "weekly") return depositAmount * 4;
@@ -268,7 +305,11 @@ export default function OnboardingPage() {
       case "deposit":
         return depositAmount > 0 && Boolean(startDate);
       case "risk":
-        return effectiveRisk !== null;
+        return (
+          allRiskAnswered &&
+          effectiveRisk !== null &&
+          sumSlicePercents(draftAllocation ?? []) === 100
+        );
       case "done":
         return true;
     }
@@ -331,7 +372,17 @@ export default function OnboardingPage() {
     // Fall back to "balanced" if somehow reached with no explicit or
     // quiz-derived risk (shouldn't happen given the "risk" step gate) —
     // never write null to StorageKeys.risk.
-    writeJSON(StorageKeys.risk, effectiveRisk ?? "balanced");
+    const base = effectiveRisk ?? "balanced";
+    writeJSON(StorageKeys.risk, base);
+    const preset = portfolioByRisk[base].allocation;
+    const edited =
+      draftAllocation &&
+      sumSlicePercents(draftAllocation) === 100 &&
+      JSON.stringify(draftAllocation) !== JSON.stringify(preset);
+    writeJSON<CustomAllocation | null>(
+      StorageKeys.riskAllocation,
+      edited ? { baseRisk: base, allocation: draftAllocation! } : null,
+    );
     writeJSON(StorageKeys.riskAnswers, riskAnswers);
     writeJSON(StorageKeys.authed, true);
     writeJSON(StorageKeys.onboardingComplete, true);
@@ -413,6 +464,10 @@ export default function OnboardingPage() {
             allAnswered={allRiskAnswered}
             selected={selectedRisk}
             onSelect={setSelectedRisk}
+            effectiveRisk={effectiveRisk}
+            allocation={draftAllocation ?? portfolio.allocation}
+            onAllocationChange={handleAllocationChange}
+            onResetAllocation={resetAllocation}
           />
         )}
 
@@ -429,6 +484,14 @@ export default function OnboardingPage() {
             startDate={startDate}
             effectiveRisk={effectiveRisk}
             portfolio={portfolio}
+            allocation={draftAllocation ?? portfolio.allocation}
+            isCustomAllocation={
+              allocationTouched &&
+              draftAllocation !== null &&
+              sumSlicePercents(draftAllocation) === 100 &&
+              JSON.stringify(draftAllocation) !==
+                JSON.stringify(portfolio.allocation)
+            }
           />
         )}
       </div>
@@ -1627,6 +1690,10 @@ function RiskStep({
   allAnswered,
   selected,
   onSelect,
+  effectiveRisk,
+  allocation,
+  onAllocationChange,
+  onResetAllocation,
 }: {
   answers: RiskAnswer[];
   onAnswer: (id: string, value: number) => void;
@@ -1634,8 +1701,11 @@ function RiskStep({
   allAnswered: boolean;
   selected: RiskProfile | null;
   onSelect: (r: RiskProfile) => void;
+  effectiveRisk: RiskProfile | null;
+  allocation: PortfolioSlice[];
+  onAllocationChange: (slices: PortfolioSlice[]) => void;
+  onResetAllocation: () => void;
 }) {
-  const [showQuiz, setShowQuiz] = useState(false);
   // Pre-select the quiz recommendation once every question is answered, as
   // long as the athlete hasn't explicitly picked yet — any explicit click on
   // a card wins from then on (fine-tune behavior).
@@ -1645,89 +1715,88 @@ function RiskStep({
     <SectionCard
       eyebrow="Step 7"
       title="Risk profile"
-      subtitle="Choose the investing risk profile that fits you. Not sure? Take the quick quiz for a recommendation."
+      subtitle="Answer all 5 questions to get your recommended investing risk profile. You can fine-tune it afterward."
       elevated
     >
       <div className="space-y-6">
-        <div className="grid gap-2.5 sm:grid-cols-2">
-          {RISK_PROFILE_ORDER.map((r) => (
-            <RiskProfileOption
-              key={r}
-              risk={r}
-              active={selected === r}
-              recommended={recommendedCard === r}
-              onClick={() => onSelect(r)}
-            />
-          ))}
-        </div>
-
         <div className="rounded-2xl border border-white/10 bg-bg-card/60 p-4">
-          <button
-            type="button"
-            onClick={() => setShowQuiz((v) => !v)}
-            className="flex w-full items-center justify-between gap-3 text-left"
-          >
-            <div>
-              <div className="text-sm font-semibold text-ink">
-                Not sure? Get a recommendation
-              </div>
-              <div className="mt-0.5 text-xs text-ink-secondary">
-                Five quick questions. We&apos;ll pre-select a profile above —
-                you can still fine-tune it afterward.
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
             <Target className="h-5 w-5 shrink-0 text-gold" />
-          </button>
-
-          {showQuiz && (
-            <div className="mt-5 space-y-6">
-              {RISK_QUESTIONS.map((q, qIdx) => {
-                const answer = answers.find((a) => a.questionId === q.id);
-                return (
-                  <div key={q.id}>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
-                        Q{qIdx + 1}
-                      </span>
-                      <div className="text-sm font-medium text-ink">
-                        {q.prompt}
-                      </div>
-                    </div>
-                    <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                      {q.options.map((opt) => {
-                        const active = answer?.value === opt.value;
-                        return (
-                          <button
-                            key={opt.label}
-                            onClick={() => onAnswer(q.id, opt.value)}
-                            className={[
-                              "rounded-xl border px-3 py-2.5 text-left text-sm transition-colors",
-                              active
-                                ? "border-gold/50 bg-gold/[0.08] text-ink"
-                                : "border-white/10 bg-bg-card/60 text-ink-secondary hover:border-white/20 hover:text-ink",
-                            ].join(" ")}
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
+            <div className="text-sm font-semibold text-ink">
+              Risk questionnaire — required
+            </div>
+          </div>
+          <div className="mt-5 space-y-6">
+            {RISK_QUESTIONS.map((q, qIdx) => {
+              const answer = answers.find((a) => a.questionId === q.id);
+              return (
+                <div key={q.id}>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted">
+                      Q{qIdx + 1}
+                    </span>
+                    <div className="text-sm font-medium text-ink">
+                      {q.prompt}
                     </div>
                   </div>
-                );
-              })}
-
-              {allAnswered && (
-                <div className="rounded-2xl border border-gold/30 bg-gold/[0.06] p-4 text-sm text-ink">
-                  Quiz recommends{" "}
-                  <span className="font-semibold text-gold">
-                    {riskProfileLabel(recommendedRisk)}
-                  </span>
-                  . Selected above{selected ? " — your pick overrides this." : "."}
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                    {q.options.map((opt) => {
+                      const active = answer?.value === opt.value;
+                      return (
+                        <button
+                          key={opt.label}
+                          onClick={() => onAnswer(q.id, opt.value)}
+                          className={[
+                            "rounded-xl border px-3 py-2.5 text-left text-sm transition-colors",
+                            active
+                              ? "border-gold/50 bg-gold/[0.08] text-ink"
+                              : "border-white/10 bg-bg-card/60 text-ink-secondary hover:border-white/20 hover:text-ink",
+                          ].join(" ")}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              )}
-            </div>
-          )}
+              );
+            })}
+
+            {allAnswered && (
+              <div className="rounded-2xl border border-gold/30 bg-gold/[0.06] p-4 text-sm text-ink">
+                Quiz recommends{" "}
+                <span className="font-semibold text-gold">
+                  {riskProfileLabel(recommendedRisk)}
+                </span>
+                . Selected below{selected ? " — your pick overrides this." : "."}
+              </div>
+            )}
+          </div>
         </div>
+
+        {allAnswered && (
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            {RISK_PROFILE_ORDER.map((r) => (
+              <RiskProfileOption
+                key={r}
+                risk={r}
+                active={selected === r}
+                recommended={recommendedCard === r}
+                onClick={() => onSelect(r)}
+              />
+            ))}
+          </div>
+        )}
+
+        {allAnswered && effectiveRisk && (
+          <div className="rounded-2xl border border-white/10 bg-bg-card/60 p-4">
+            <AllocationEditor
+              allocation={allocation}
+              onChange={onAllocationChange}
+              onReset={onResetAllocation}
+            />
+          </div>
+        )}
 
         <DisclaimerBox tone="warning">
           Portfolio values can go down. Past performance does not guarantee
@@ -1809,6 +1878,8 @@ function DoneStep({
   startDate,
   effectiveRisk,
   portfolio,
+  allocation,
+  isCustomAllocation,
 }: {
   identity: AthleteIdentity | null;
   income: number;
@@ -1821,6 +1892,8 @@ function DoneStep({
   startDate: string;
   effectiveRisk: RiskProfile | null;
   portfolio: (typeof portfolioByRisk)[keyof typeof portfolioByRisk];
+  allocation: PortfolioSlice[];
+  isCustomAllocation: boolean;
 }) {
   const fundingLabel =
     FUNDING_SOURCES.find((f) => f.id === fundingSource)?.label ??
@@ -1883,13 +1956,19 @@ function DoneStep({
           <SummaryCard
             icon={<Shield className="h-4 w-4 text-gold" />}
             label="Risk profile"
-            primary={effectiveRisk ? riskProfileLabel(effectiveRisk) : "—"}
+            primary={
+              isCustomAllocation
+                ? `Custom · tuned from ${effectiveRisk ? riskProfileLabel(effectiveRisk) : "—"}`
+                : effectiveRisk
+                  ? riskProfileLabel(effectiveRisk)
+                  : "—"
+            }
             secondary={portfolio.name}
           />
           <SummaryCard
             icon={<Target className="h-4 w-4 text-gold" />}
             label="Portfolio allocation"
-            primary={portfolio.allocation
+            primary={allocation
               .map((s) => `${s.label.split(" ")[0]} ${s.percent}%`)
               .join(" · ")}
             secondary={`${portfolio.expectedReturn} · ${portfolio.volatility} volatility`}

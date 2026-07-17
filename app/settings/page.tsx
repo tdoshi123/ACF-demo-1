@@ -21,6 +21,7 @@ import PrimaryButton from "@/components/PrimaryButton";
 import ProgressBar from "@/components/ProgressBar";
 import SecondaryButton from "@/components/SecondaryButton";
 import SectionCard from "@/components/SectionCard";
+import AllocationEditor from "@/components/AllocationEditor";
 import {
   mockAthlete,
   mockDeposit,
@@ -34,10 +35,17 @@ import {
   determineDepositWarning,
   formatCurrency,
   monthlyDepositEquivalent,
+  resolveAllocation,
   riskProfileLabel,
+  sumSlicePercents,
 } from "@/lib/calculations";
 import { StorageKeys, clearAll, readJSON, writeJSON } from "@/lib/storage";
-import type { DepositFrequency, RiskProfile } from "@/lib/types";
+import type {
+  CustomAllocation,
+  DepositFrequency,
+  PortfolioSlice,
+  RiskProfile,
+} from "@/lib/types";
 
 interface NotificationPrefs {
   deposit: boolean;
@@ -65,6 +73,12 @@ export default function SettingsPage() {
   );
   const [paused, setPaused] = useState<boolean>(!mockDeposit.active);
   const [risk, setRisk] = useState<RiskProfile>("balanced");
+  const [customAlloc, setCustomAlloc] = useState<CustomAllocation | null>(
+    null,
+  );
+  const [draftAllocation, setDraftAllocation] = useState<PortfolioSlice[]>(
+    portfolioByRisk.balanced.allocation,
+  );
   const [savedToast, setSavedToast] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [pauseArmed, setPauseArmed] = useState(false);
@@ -81,7 +95,14 @@ export default function SettingsPage() {
       setFrequency(savedDeposit.frequency);
     }
     setPaused(readJSON<boolean>(StorageKeys.depositPaused, !mockDeposit.active));
-    setRisk(readJSON<RiskProfile>(StorageKeys.risk, "balanced"));
+    const loadedRisk = readJSON<RiskProfile>(StorageKeys.risk, "balanced");
+    setRisk(loadedRisk);
+    const loadedCustomAlloc = readJSON<CustomAllocation | null>(
+      StorageKeys.riskAllocation,
+      null,
+    );
+    setCustomAlloc(loadedCustomAlloc);
+    setDraftAllocation(resolveAllocation(loadedRisk, loadedCustomAlloc));
     setPrefs(readJSON<NotificationPrefs>(StorageKeys.notifications, DEFAULT_PREFS));
   }, []);
 
@@ -95,6 +116,7 @@ export default function SettingsPage() {
     plan.savingsInvesting,
   );
   const portfolio = portfolioByRisk[risk];
+  const allocation = resolveAllocation(risk, customAlloc);
 
   function save() {
     writeJSON(StorageKeys.income, income);
@@ -107,6 +129,30 @@ export default function SettingsPage() {
   function selectRisk(r: RiskProfile) {
     setRisk(r);
     writeJSON(StorageKeys.risk, r);
+    // Picking a fresh preset supersedes a previous fine-tune; the editor
+    // starts fresh from that preset's default slices.
+    writeJSON<CustomAllocation | null>(StorageKeys.riskAllocation, null);
+    setCustomAlloc(null);
+    setDraftAllocation(portfolioByRisk[r].allocation.map((s) => ({ ...s })));
+  }
+
+  function updateAllocation(slices: PortfolioSlice[]) {
+    setDraftAllocation(slices);
+    const preset = portfolioByRisk[risk].allocation;
+    const edited =
+      sumSlicePercents(slices) === 100 &&
+      JSON.stringify(slices) !== JSON.stringify(preset);
+    const next: CustomAllocation | null = edited
+      ? { baseRisk: risk, allocation: slices }
+      : null;
+    writeJSON<CustomAllocation | null>(StorageKeys.riskAllocation, next);
+    setCustomAlloc(next);
+  }
+
+  function resetAllocation() {
+    writeJSON<CustomAllocation | null>(StorageKeys.riskAllocation, null);
+    setCustomAlloc(null);
+    setDraftAllocation(portfolioByRisk[risk].allocation.map((s) => ({ ...s })));
   }
 
   function togglePause() {
@@ -136,6 +182,8 @@ export default function SettingsPage() {
     setFrequency(mockDeposit.frequency);
     setPaused(!mockDeposit.active);
     setRisk("balanced");
+    setCustomAlloc(null);
+    setDraftAllocation(portfolioByRisk.balanced.allocation);
     setPrefs(DEFAULT_PREFS);
     setConfirmReset(false);
   }
@@ -376,14 +424,14 @@ export default function SettingsPage() {
             <Row label="Volatility" value={portfolio.volatility} />
             <Row
               label="Allocation"
-              value={portfolio.allocation
+              value={allocation
                 .map((s) => `${s.label.split(" ")[0]} ${s.percent}%`)
                 .join(" · ")}
             />
           </div>
 
           <div className="mt-4 flex h-2 overflow-hidden rounded-full bg-white/5">
-            {portfolio.allocation.map((slice) => (
+            {allocation.map((slice) => (
               <div
                 key={slice.label}
                 style={{
@@ -443,6 +491,14 @@ export default function SettingsPage() {
                 );
               })}
             </div>
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-white/10 bg-bg-card/60 p-4">
+            <AllocationEditor
+              allocation={draftAllocation}
+              onChange={updateAllocation}
+              onReset={resetAllocation}
+            />
           </div>
 
           <div className="mt-5 flex flex-col items-stretch gap-2 sm:flex-row sm:justify-end">

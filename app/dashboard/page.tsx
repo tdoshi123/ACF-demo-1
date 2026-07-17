@@ -45,12 +45,18 @@ import {
 import {
   formatCurrency,
   overallEducationProgress,
+  resolveAllocation,
   riskProfileLabel,
 } from "@/lib/calculations";
 import { getCategoryById } from "@/lib/categories";
 import { StorageKeys, readJSON, writeJSON } from "@/lib/storage";
 import { calculateTotals } from "@/lib/tracking";
-import type { IncomeEvent, RiskProfile, SpendingLog } from "@/lib/types";
+import type {
+  CustomAllocation,
+  IncomeEvent,
+  RiskProfile,
+  SpendingLog,
+} from "@/lib/types";
 import type { ProgressMap } from "@/lib/calculations";
 
 type Period = "1D" | "1W" | "1M" | "3M" | "1Y" | "ALL";
@@ -76,6 +82,9 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [paused, setPaused] = useState<boolean>(!mockDeposit.active);
   const [risk, setRisk] = useState<RiskProfile>("balanced");
+  const [customAlloc, setCustomAlloc] = useState<CustomAllocation | null>(
+    null,
+  );
   const [progressMap, setProgressMap] = useState<ProgressMap>({});
   const [events, setEvents] = useState<IncomeEvent[]>([]);
   const [logs, setLogs] = useState<SpendingLog[]>([]);
@@ -83,6 +92,9 @@ export default function DashboardPage() {
   useEffect(() => {
     setPaused(readJSON<boolean>(StorageKeys.depositPaused, !mockDeposit.active));
     setRisk(readJSON<RiskProfile>(StorageKeys.risk, "balanced"));
+    setCustomAlloc(
+      readJSON<CustomAllocation | null>(StorageKeys.riskAllocation, null),
+    );
     setProgressMap(readJSON<ProgressMap>(StorageKeys.educationProgress, {}));
     setEvents(readJSON<IncomeEvent[]>(StorageKeys.incomeEvents, []));
     setLogs(readJSON<SpendingLog[]>(StorageKeys.spendingLogs, []));
@@ -90,6 +102,7 @@ export default function DashboardPage() {
   }, []);
 
   const portfolio = portfolioByRisk[risk];
+  const allocation = resolveAllocation(risk, customAlloc);
 
   const educationPct = overallEducationProgress(
     mockEducationModules,
@@ -162,7 +175,7 @@ export default function DashboardPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={portfolio.allocation}
+                    data={allocation}
                     dataKey="percent"
                     nameKey="label"
                     innerRadius={56}
@@ -170,7 +183,7 @@ export default function DashboardPage() {
                     paddingAngle={2}
                     strokeWidth={0}
                   >
-                    {portfolio.allocation.map((slice) => (
+                    {allocation.map((slice) => (
                       <Cell key={slice.label} fill={slice.color} />
                     ))}
                   </Pie>
@@ -182,7 +195,7 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </div>
             <div className="grid grid-cols-1 gap-2">
-              {portfolio.allocation.map((slice) => (
+              {allocation.map((slice) => (
                 <div
                   key={slice.label}
                   className="flex items-center justify-between rounded-xl border border-white/5 bg-bg-card/60 px-3 py-2.5"

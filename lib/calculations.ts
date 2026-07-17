@@ -1,10 +1,13 @@
 import type {
   ContributionPoint,
+  CustomAllocation,
   EducationModule,
   FiftyThirtyTwentyPlan,
+  PortfolioSlice,
   RiskAnswer,
   RiskProfile,
 } from "./types";
+import { portfolioByRisk } from "./mockData";
 
 export function calculateNeeds(income: number): number {
   return round2(income * 0.5);
@@ -137,6 +140,50 @@ export function riskProfileLabel(profile: RiskProfile): string {
     case "aggressive_growth":
       return "Aggressive Growth";
   }
+}
+
+/** Sum of slice percents (should be 100 for a valid allocation). */
+export function sumSlicePercents(slices: PortfolioSlice[]): number {
+  return slices.reduce((sum, s) => sum + s.percent, 0);
+}
+
+/**
+ * The allocation to actually render for a given risk profile.
+ * Returns the custom slices when a custom allocation exists AND its baseRisk
+ * matches `risk` AND it sums to 100; otherwise the preset's allocation.
+ */
+export function resolveAllocation(
+  risk: RiskProfile,
+  custom: CustomAllocation | null,
+): PortfolioSlice[] {
+  if (
+    custom &&
+    custom.baseRisk === risk &&
+    sumSlicePercents(custom.allocation) === 100
+  ) {
+    return custom.allocation;
+  }
+  return portfolioByRisk[risk].allocation;
+}
+
+/**
+ * Groups slices into Stocks / Bonds / Cash totals by matching the slice label
+ * (contains "Stocks" | "Bonds" | "Cash", case-insensitive). Used for the
+ * "percent stocks / bonds / cash" summary line. Returns integers.
+ */
+export function summarizeAssetClasses(
+  slices: PortfolioSlice[],
+): { stocks: number; bonds: number; cash: number } {
+  let stocks = 0;
+  let bonds = 0;
+  let cash = 0;
+  for (const slice of slices) {
+    const label = slice.label.toLowerCase();
+    if (label.includes("stocks")) stocks += slice.percent;
+    else if (label.includes("bonds")) bonds += slice.percent;
+    else if (label.includes("cash")) cash += slice.percent;
+  }
+  return { stocks, bonds, cash };
 }
 
 export function formatCurrency(value: number): string {

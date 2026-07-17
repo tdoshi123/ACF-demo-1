@@ -87,6 +87,19 @@ export interface PortfolioSlice {
   color: string;
 }
 
+/**
+ * A risk allocation the athlete fine-tuned away from a preset.
+ * `baseRisk` is the preset it was derived from (drives label / expectedReturn /
+ * volatility / description / holdings). `allocation` slices MUST reuse the exact
+ * labels and colors of that preset's slices (holdingsForSlice + the asset-class
+ * legend match on label; colors must stay in the existing token set — no new
+ * colors). Percents are integers that sum to 100.
+ */
+export interface CustomAllocation {
+  baseRisk: RiskProfile;
+  allocation: PortfolioSlice[];
+}
+
 export interface ModelPortfolio {
   risk: RiskProfile;
   name: string;

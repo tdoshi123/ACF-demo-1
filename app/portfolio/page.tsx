@@ -29,6 +29,7 @@ import BadgePill from "@/components/BadgePill";
 import DisclaimerBox from "@/components/DisclaimerBox";
 import SecondaryButton from "@/components/SecondaryButton";
 import SectionCard from "@/components/SectionCard";
+import AllocationEditor from "@/components/AllocationEditor";
 import {
   mockContributions,
   mockPortfolioBalance,
@@ -37,9 +38,14 @@ import {
   portfolioByRisk,
 } from "@/lib/mockData";
 import { holdingsForSlice } from "@/lib/holdings";
-import { formatCurrency, riskProfileLabel } from "@/lib/calculations";
+import {
+  formatCurrency,
+  resolveAllocation,
+  riskProfileLabel,
+  sumSlicePercents,
+} from "@/lib/calculations";
 import { StorageKeys, readJSON, writeJSON } from "@/lib/storage";
-import type { RiskProfile } from "@/lib/types";
+import type { CustomAllocation, PortfolioSlice, RiskProfile } from "@/lib/types";
 
 const riskOrder: RiskProfile[] = [
   "conservative",
@@ -65,15 +71,29 @@ const assetClassLegend: { label: string; color: string }[] = (() => {
 
 export default function PortfolioPage() {
   const [selected, setSelected] = useState<RiskProfile>("balanced");
+  const [customAlloc, setCustomAlloc] = useState<CustomAllocation | null>(
+    null,
+  );
+  const [draftAllocation, setDraftAllocation] = useState<PortfolioSlice[]>(
+    portfolioByRisk.balanced.allocation,
+  );
   const [hydrated, setHydrated] = useState(false);
   const [showRiskOptions, setShowRiskOptions] = useState(false);
 
   useEffect(() => {
-    setSelected(readJSON<RiskProfile>(StorageKeys.risk, "balanced"));
+    const loadedRisk = readJSON<RiskProfile>(StorageKeys.risk, "balanced");
+    setSelected(loadedRisk);
+    const loadedCustomAlloc = readJSON<CustomAllocation | null>(
+      StorageKeys.riskAllocation,
+      null,
+    );
+    setCustomAlloc(loadedCustomAlloc);
+    setDraftAllocation(resolveAllocation(loadedRisk, loadedCustomAlloc));
     setHydrated(true);
   }, []);
 
   const portfolio = portfolioByRisk[selected];
+  const allocation = resolveAllocation(selected, customAlloc);
 
   const growthPct = useMemo(() => {
     if (mockTotalContributed <= 0) return 0;
@@ -98,6 +118,30 @@ export default function PortfolioPage() {
   function selectProfile(r: RiskProfile) {
     setSelected(r);
     writeJSON(StorageKeys.risk, r);
+    writeJSON<CustomAllocation | null>(StorageKeys.riskAllocation, null);
+    setCustomAlloc(null);
+    setDraftAllocation(portfolioByRisk[r].allocation.map((s) => ({ ...s })));
+  }
+
+  function updateAllocation(slices: PortfolioSlice[]) {
+    setDraftAllocation(slices);
+    const preset = portfolioByRisk[selected].allocation;
+    const edited =
+      sumSlicePercents(slices) === 100 &&
+      JSON.stringify(slices) !== JSON.stringify(preset);
+    const next: CustomAllocation | null = edited
+      ? { baseRisk: selected, allocation: slices }
+      : null;
+    writeJSON<CustomAllocation | null>(StorageKeys.riskAllocation, next);
+    setCustomAlloc(next);
+  }
+
+  function resetAllocation() {
+    writeJSON<CustomAllocation | null>(StorageKeys.riskAllocation, null);
+    setCustomAlloc(null);
+    setDraftAllocation(
+      portfolioByRisk[selected].allocation.map((s) => ({ ...s })),
+    );
   }
 
   const renderRiskOption = (r: RiskProfile) => {
@@ -212,7 +256,7 @@ export default function PortfolioPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={portfolio.allocation}
+                    data={allocation}
                     dataKey="percent"
                     nameKey="label"
                     innerRadius={92}
@@ -220,7 +264,7 @@ export default function PortfolioPage() {
                     paddingAngle={2}
                     strokeWidth={0}
                   >
-                    {portfolio.allocation.map((slice) => (
+                    {allocation.map((slice) => (
                       <Cell key={slice.label} fill={slice.color} />
                     ))}
                   </Pie>
@@ -238,13 +282,13 @@ export default function PortfolioPage() {
                   {formatCurrency(mockPortfolioBalance)}
                 </div>
                 <div className="mt-0.5 text-[11px] text-ink-muted">
-                  across {portfolio.allocation.length} asset classes
+                  across {allocation.length} asset classes
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              {portfolio.allocation.map((slice) => {
+              {allocation.map((slice) => {
                 const sliceValue =
                   mockPortfolioBalance * (slice.percent / 100);
                 return (
@@ -283,7 +327,7 @@ export default function PortfolioPage() {
           subtitle="Tap a ticker to open its full asset page."
         >
           <div className="space-y-4">
-            {portfolio.allocation.map((slice) => {
+            {allocation.map((slice) => {
               const holdings = holdingsForSlice(slice.label);
               const sliceValue = mockPortfolioBalance * (slice.percent / 100);
               return (
@@ -436,7 +480,7 @@ export default function PortfolioPage() {
                   </button>
                 </div>
                 <div className="mt-2.5 flex h-1.5 overflow-hidden rounded-full bg-white/5">
-                  {portfolio.allocation.map((slice) => (
+                  {allocation.map((slice) => (
                     <div
                       key={slice.label}
                       title={`${slice.label} ${slice.percent}%`}
@@ -454,6 +498,14 @@ export default function PortfolioPage() {
                   {riskOrder.map(renderRiskOption)}
                 </div>
               )}
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-white/10 bg-bg-card/60 p-4">
+              <AllocationEditor
+                allocation={draftAllocation}
+                onChange={updateAllocation}
+                onReset={resetAllocation}
+              />
             </div>
           </SectionCard>
 

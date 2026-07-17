@@ -63,6 +63,7 @@ export const StorageKeys = {
   deposit: "deposit",
   depositPaused: "deposit-paused",
   risk: "risk",
+  riskAllocation: "risk-allocation",
   riskAnswers: "risk-answers",
   educationProgress: "education-progress",
   notifications: "notification-prefs",
