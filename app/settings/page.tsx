@@ -10,14 +10,11 @@ import {
   EyeOff,
   HelpCircle,
   Languages,
-  LifeBuoy,
   Lock,
   LogOut,
+  MessageSquare,
   Repeat,
   Shield,
-  ShieldCheck,
-  SlidersHorizontal,
-  TrendingUp,
   User,
   Wallet,
 } from "lucide-react";
@@ -29,43 +26,37 @@ interface NavItem {
   label: string;
   href: string;
   icon: LucideIcon;
-  hint?: string;
 }
 
 interface NavSection {
   label: string;
-  icon: LucideIcon;
   items: NavItem[];
 }
 
 const SECTIONS: NavSection[] = [
   {
     label: "Account",
-    icon: User,
     items: [
-      { label: "Profile", href: "/settings/profile", icon: User, hint: "Athlete identity & Teamworks sync" },
-      { label: "Wallet", href: "/settings/wallet", icon: Wallet, hint: "Connected funding source" },
+      { label: "Profile", href: "/settings/profile", icon: User },
+      { label: "Wallet", href: "/settings/wallet", icon: Wallet },
     ],
   },
   {
     label: "Investing",
-    icon: TrendingUp,
     items: [
-      { label: "Recurring Deposit", href: "/settings/recurring-deposit", icon: Repeat, hint: "Amount, frequency, pause" },
-      { label: "Risk Profile", href: "/settings/risk-profile", icon: Shield, hint: "Model portfolio & allocation" },
+      { label: "Recurring Deposit", href: "/settings/recurring-deposit", icon: Repeat },
+      { label: "Risk Profile", href: "/settings/risk-profile", icon: Shield },
     ],
   },
   {
     label: "Security & Privacy",
-    icon: ShieldCheck,
     items: [
       { label: "Security", href: "/settings/security", icon: Lock },
-      { label: "Privacy", href: "/settings/privacy", icon: EyeOff, hint: "Legal, data, reset demo" },
+      { label: "Privacy", href: "/settings/privacy", icon: EyeOff },
     ],
   },
   {
     label: "Support",
-    icon: LifeBuoy,
     items: [{ label: "FAQ", href: "/settings/faq", icon: HelpCircle }],
   },
 ];
@@ -80,8 +71,7 @@ export default function SettingsHubPage() {
     setMounted(true);
   }, []);
 
-  function toggleLanguage() {
-    const next: Language = language === "en" ? "es" : "en";
+  function selectLanguage(next: Language) {
     setLanguage(next);
     writeJSON(StorageKeys.language, next);
   }
@@ -92,11 +82,15 @@ export default function SettingsHubPage() {
   }
 
   return (
-    <AppShell title="More Actions" minimalMobileHeader>
+    <AppShell
+      title="More Actions"
+      minimalMobileHeader
+      headerAction={{ icon: MessageSquare, label: "Feedback", href: "/settings/feedback" }}
+    >
       <div className="space-y-7">
         {SECTIONS.map((section) => (
           <div key={section.label}>
-            <SectionHeader icon={section.icon} label={section.label} />
+            <SectionHeader label={section.label} />
             <div className="mt-2.5 space-y-2">
               {section.items.map((item) => (
                 <NavCard key={item.href} item={item} />
@@ -107,29 +101,38 @@ export default function SettingsHubPage() {
 
         {/* ----- App Settings ----- */}
         <div>
-          <SectionHeader icon={SlidersHorizontal} label="App Settings" />
+          <SectionHeader label="App Settings" />
           <div className="mt-2.5 space-y-2">
             <NavCard
               item={{
                 label: "Preferences",
                 href: "/settings/preferences",
                 icon: Bell,
-                hint: "Notification reminders",
               }}
             />
-            <button
-              type="button"
-              onClick={toggleLanguage}
-              className="flex w-full items-center justify-between gap-3 rounded-2xl border border-white/10 bg-bg-card/60 px-4 py-3.5 text-left transition-colors hover:border-white/20"
-            >
+            <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-bg-card/60 px-4 py-3.5">
               <div className="flex items-center gap-3">
                 <Languages className="h-4 w-4 text-gold" />
                 <span className="text-sm font-medium text-ink">Languages</span>
               </div>
-              <span className="inline-flex items-center rounded-full border border-gold/30 bg-gold/15 px-2.5 py-1 text-xs font-medium text-gold">
-                {mounted && language === "es" ? "ES" : "EN"}
-              </span>
-            </button>
+              <div className="grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-bg/40 p-1">
+                {(["en", "es"] as const).map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => selectLanguage(code)}
+                    className={[
+                      "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                      (mounted ? language : "en") === code
+                        ? "bg-gold/[0.12] text-ink"
+                        : "text-ink-secondary hover:text-ink",
+                    ].join(" ")}
+                  >
+                    {code === "en" ? "English" : "Español"}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -149,12 +152,9 @@ export default function SettingsHubPage() {
 
 /* ===== */
 
-function SectionHeader({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
+function SectionHeader({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-2">
-      <Icon className="h-5 w-5 text-gold" />
-      <span className="text-sm font-semibold tracking-tight text-ink">{label}</span>
-    </div>
+    <span className="text-sm font-semibold tracking-tight text-ink">{label}</span>
   );
 }
 
@@ -167,12 +167,7 @@ function NavCard({ item }: { item: NavItem }) {
     >
       <div className="flex items-center gap-3">
         <Icon className="h-4 w-4 text-gold" />
-        <div>
-          <div className="text-sm font-medium text-ink">{item.label}</div>
-          {item.hint && (
-            <div className="text-xs text-ink-secondary">{item.hint}</div>
-          )}
-        </div>
+        <div className="text-sm font-medium text-ink">{item.label}</div>
       </div>
       <ChevronRight className="h-4 w-4 shrink-0 text-ink-secondary" />
     </Link>

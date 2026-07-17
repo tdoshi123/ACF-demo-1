@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 import Header from "./Header";
 import MobileNav from "./MobileNav";
 import Sidebar from "./Sidebar";
@@ -10,6 +11,7 @@ export interface AppShellProps {
   hideTitleOnMobile?: boolean;
   mobileGreeting?: boolean;
   minimalMobileHeader?: boolean;
+  headerAction?: { icon: LucideIcon; label: string; href: string };
 }
 
 export function AppShell({
@@ -19,6 +21,7 @@ export function AppShell({
   hideTitleOnMobile,
   mobileGreeting,
   minimalMobileHeader,
+  headerAction,
 }: AppShellProps) {
   return (
     <div className="flex min-h-screen w-full">
@@ -30,6 +33,7 @@ export function AppShell({
           hideTitleOnMobile={hideTitleOnMobile}
           mobileGreeting={mobileGreeting}
           minimalMobileHeader={minimalMobileHeader}
+          headerAction={headerAction}
         />
         <main className="flex-1 px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8">
           <div className="mx-auto w-full max-w-6xl">{children}</div>

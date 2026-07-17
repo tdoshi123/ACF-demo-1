@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 import { Bell, ShieldCheck } from "lucide-react";
 import { mockAthlete } from "@/lib/mockData";
 
@@ -31,6 +32,14 @@ export interface HeaderProps {
    * `mobileGreeting` — do not pass both on the same page.
    */
   minimalMobileHeader?: boolean;
+  /**
+   * Optional icon-button link rendered at the top-right of the header, on both
+   * mobile and desktop. Renders inside the mobile minimal-header block (when
+   * `minimalMobileHeader` is set) and inside the desktop right-side control
+   * row. A generic slot — not feedback-specific — for pages that need a single
+   * header action without the full profile/bell/pill cluster.
+   */
+  headerAction?: { icon: LucideIcon; label: string; href: string };
 }
 
 export function Header({
@@ -39,6 +48,7 @@ export function Header({
   hideTitleOnMobile,
   mobileGreeting,
   minimalMobileHeader,
+  headerAction,
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 border-b border-[#23232a] bg-bg/80 backdrop-blur">
@@ -95,6 +105,16 @@ export function Header({
             minimalMobileHeader ? " hidden lg:flex" : " flex"
           }`}
         >
+          {headerAction && (
+            <Link
+              href={headerAction.href}
+              aria-label={headerAction.label}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#23232a] bg-bg-secondary text-ink-secondary transition-colors hover:text-ink"
+            >
+              <headerAction.icon className="h-4 w-4" />
+            </Link>
+          )}
+
           <span className="hidden items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-medium text-success sm:inline-flex">
             <ShieldCheck className="h-3.5 w-3.5" />
             Teamworks verified
@@ -134,9 +154,20 @@ export function Header({
       {minimalMobileHeader ? (
         title && (
           <div className="border-t border-[#23232a] px-4 py-3 sm:px-6 lg:hidden">
-            <h1 className="text-center text-lg font-semibold tracking-tight text-ink">
-              {title}
-            </h1>
+            <div className="relative flex items-center justify-center">
+              <h1 className="text-center text-lg font-semibold tracking-tight text-ink">
+                {title}
+              </h1>
+              {headerAction && (
+                <Link
+                  href={headerAction.href}
+                  aria-label={headerAction.label}
+                  className="absolute right-0 flex h-8 w-8 items-center justify-center rounded-lg border border-[#23232a] bg-bg-secondary text-ink-secondary transition-colors hover:text-ink"
+                >
+                  <headerAction.icon className="h-4 w-4" />
+                </Link>
+              )}
+            </div>
           </div>
         )
       ) : (
