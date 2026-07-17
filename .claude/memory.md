@@ -117,6 +117,8 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 - Multi-step flow with a step machine: `app/onboarding/page.tsx`
 - Shared type definitions: `lib/types.ts`
 - Unit test for a pure module: `lib/tracking.test.ts`
+- Shared prop-controlled component reused across pages (no page/storage
+  knowledge of its own): `components/AllocationEditor.tsx`
 
 ## Decisions
 - 2026-07 — App is a merge of the ACF codebase and the older PWC codebase.
@@ -145,6 +147,15 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
   their own `RiskProfile` directly (onboarding, Settings, Portfolio) instead
   of having a risk allocation baked into the program split. Every program
   still sums to 1.00.
+- 2026-07-17 — Made onboarding's risk quiz mandatory (removed the bypass that
+  let an athlete skip straight to a preset pick) and added a fine-tune
+  allocation editor (`components/AllocationEditor.tsx`) so athletes can adjust
+  per-asset-class percentages (stocks/bonds/cash) away from the 5 presets, in
+  onboarding, Settings, and Portfolio. Custom mixes are stored in a new
+  `StorageKeys.riskAllocation` key layered on top of the existing preset
+  (`StorageKeys.risk`), resolved via `resolveAllocation()` in
+  `lib/calculations.ts`. Picking a different preset clears any stored custom
+  mix for the prior preset.
 
 ## Known gaps
 - No error boundaries.
@@ -159,6 +170,12 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 - app/onboarding/page.tsx had a dead inline eslint-disable comment
   predating any lint config. If you find others, delete rather than
   reinstate.
+- Risk fine-tune feature (2026-07-17): `AllocationEditor` and the page-level
+  logic around it (mandatory-quiz gating, number-input clamping,
+  preset-switch clearing the custom allocation) are unverified by automated
+  tests — only the pure helpers in `lib/calculations.ts` are covered. Same
+  root cause as the general "no component testing" gap above; verified
+  manually instead.
 
 ## Don't do this
 - Don't add a backend, API route, or database.
@@ -172,6 +189,13 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 ## Features shipped
 Appended after every merge. Newest first.
 
+- 2026-07-17 — Mandatory risk quiz + fine-tune allocation editor. The
+  onboarding risk quiz can no longer be skipped by clicking a preset card
+  directly. Added a shared `AllocationEditor` letting athletes fine-tune
+  per-asset-class percentages (stocks/bonds/cash) away from the 5 presets, in
+  onboarding, Settings, and Portfolio. Key files: `components/AllocationEditor.tsx`,
+  `app/onboarding/page.tsx`, `app/settings/page.tsx`, `app/portfolio/page.tsx`,
+  `app/dashboard/page.tsx`, `lib/calculations.ts`, `lib/storage.ts`, `lib/types.ts`.
 - 2026-07-16 — Athlete-set risk profile + controlled-risk removal. Added a
   direct 5-option risk-profile selector to onboarding (quiz kept as an
   optional recommendation the selector can override) and to Settings, with
