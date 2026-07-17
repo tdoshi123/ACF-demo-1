@@ -34,11 +34,17 @@ onboarding/         Multi-step onboarding (welcome → auth → program → depo
 dashboard/          Home. Investing summary, recent activity, quick actions
 portfolio/          Holdings, risk profiles, charts
 education/          Lesson modules + badges
-settings/           "More Actions" nav hub (bottom-nav "More" tab). Sub-pages:
-                    profile/, wallet/, recurring-deposit/, risk-profile/,
-                    security/ (stub), privacy/ (legal + reset demo data),
-                    faq/ (accordion), preferences/ (notifications). Languages
-                    (EN/ES cosmetic toggle) lives inline on the hub, not a page.
+settings/           "More Actions" nav hub (bottom-nav "More" tab), with a
+                    feedback icon button top-right (headerAction prop) linking
+                    to feedback/. Sub-pages: profile/, wallet/,
+                    recurring-deposit/, risk-profile/, security/ (stub),
+                    privacy/ (legal + reset demo data), faq/ (accordion),
+                    preferences/ (notifications), feedback/ (mock form, no
+                    persistence). Languages is an inline EN/ES segmented
+                    toggle (both options always visible) on the hub itself,
+                    not a page — cosmetic, no real translation. Section
+                    headers (Account, Investing, etc.) are plain text, no
+                    icon; item cards show icon + title only, no hint text.
 enter-check/        Log a NIL check, see the split preview
 log-spending/       Log lifestyle spend against the cap
 globals.css         Design tokens + surface/eyebrow component classes
@@ -123,6 +129,10 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 - Unit test for a pure module: `lib/tracking.test.ts`
 - Shared prop-controlled component reused across pages (no page/storage
   knowledge of its own): `components/AllocationEditor.tsx`
+- Header prop-threading (page → `AppShell` → `Header`) for optional header
+  variants: `mobileGreeting`, `minimalMobileHeader`, `headerAction` in
+  `components/Header.tsx` — each is a no-op unless a page explicitly passes
+  it, so adding a new one never affects existing pages.
 
 ## Decisions
 - 2026-07 — App is a merge of the ACF codebase and the older PWC codebase.
@@ -203,6 +213,17 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 ## Features shipped
 Appended after every merge. Newest first.
 
+- 2026-07-17 — More Actions hub visual tidy-up + feedback button. Removed
+  section-header icons (item cards keep theirs) and the secondary hint text
+  under each card. Replaced the single flipping Languages pill with a
+  two-option English/Español segmented toggle (both always visible, English
+  default). Added a new generic `headerAction` prop on `Header`/`AppShell`
+  (mirrors the `mobileGreeting`/`minimalMobileHeader` pattern) rendering an
+  icon-button link at top-right on both mobile and desktop, wired to a new
+  mock Feedback sub-page (`app/settings/feedback/page.tsx` — textarea +
+  submit, no persistence, no backend). Key files: `app/settings/page.tsx`,
+  `components/Header.tsx`, `components/AppShell.tsx`,
+  `app/settings/feedback/page.tsx`.
 - 2026-07-17 — "More Actions" navigation hub. Relabeled the bottom-nav /
   sidebar "Settings" tab to "More" with a hamburger icon. The old flat
   settings page is now a grouped nav hub (Account, Investing, Security &
