@@ -67,4 +67,5 @@ export const StorageKeys = {
   riskAnswers: "risk-answers",
   educationProgress: "education-progress",
   notifications: "notification-prefs",
+  language: "language",
 } as const;

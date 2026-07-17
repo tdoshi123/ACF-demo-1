@@ -6,9 +6,9 @@ import {
   BookOpen,
   CircleDollarSign,
   LayoutDashboard,
+  Menu,
   PieChart,
   Receipt,
-  Settings,
   ShieldCheck,
 } from "lucide-react";
 
@@ -18,7 +18,7 @@ const navItems = [
   { href: "/enter-check", label: "Enter Check", icon: CircleDollarSign },
   { href: "/log-spending", label: "Log Spending", icon: Receipt },
   { href: "/education", label: "Education", icon: BookOpen },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/settings", label: "More", icon: Menu },
 ];
 
 export function Sidebar() {

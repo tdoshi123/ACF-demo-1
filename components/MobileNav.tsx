@@ -6,9 +6,9 @@ import {
   BookOpen,
   CircleDollarSign,
   LayoutDashboard,
+  Menu,
   PieChart,
   Receipt,
-  Settings,
 } from "lucide-react";
 
 const navItems = [
@@ -17,7 +17,7 @@ const navItems = [
   { href: "/enter-check", label: "Check", icon: CircleDollarSign },
   { href: "/log-spending", label: "Spend", icon: Receipt },
   { href: "/education", label: "Learn", icon: BookOpen },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/settings", label: "More", icon: Menu },
 ];
 
 export function MobileNav() {

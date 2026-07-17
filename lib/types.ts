@@ -9,6 +9,8 @@ export type WalletStatus = "connected" | "pending" | "not_connected";
 
 export type DepositFrequency = "weekly" | "biweekly" | "monthly";
 
+export type Language = "en" | "es";
+
 export type FundingSource =
   | "teamworks_wallet_ach"
   | "external_bank"
