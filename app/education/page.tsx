@@ -94,7 +94,7 @@ export default function EducationPage() {
     <AppShell
       title="Education hub"
       subtitle="Learn how NIL money moves, then learn how to keep it."
-      hideTitleOnMobile
+      minimalMobileHeader
     >
       <div className="space-y-6">
         <SectionCard

@@ -189,7 +189,7 @@ export default function PortfolioPage() {
     <AppShell
       title="Portfolio"
       subtitle="Your model portfolio, holdings, and contribution history."
-      hideTitleOnMobile
+      minimalMobileHeader
     >
       <div className="space-y-6">
         <MockBanner />

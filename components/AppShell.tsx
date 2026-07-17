@@ -9,6 +9,7 @@ export interface AppShellProps {
   subtitle?: string;
   hideTitleOnMobile?: boolean;
   mobileGreeting?: boolean;
+  minimalMobileHeader?: boolean;
 }
 
 export function AppShell({
@@ -17,6 +18,7 @@ export function AppShell({
   subtitle,
   hideTitleOnMobile,
   mobileGreeting,
+  minimalMobileHeader,
 }: AppShellProps) {
   return (
     <div className="flex min-h-screen w-full">
@@ -27,6 +29,7 @@ export function AppShell({
           subtitle={subtitle}
           hideTitleOnMobile={hideTitleOnMobile}
           mobileGreeting={mobileGreeting}
+          minimalMobileHeader={minimalMobileHeader}
         />
         <main className="flex-1 px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8">
           <div className="mx-auto w-full max-w-6xl">{children}</div>

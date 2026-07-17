@@ -124,6 +124,7 @@ export default function EnterCheckPage() {
     <AppShell
       title="Enter Check"
       subtitle="Log the play. The split locks the moment the check lands."
+      minimalMobileHeader
     >
       {/* Top-of-page back control — no scroll required */}
       <div className="mb-5">

@@ -113,6 +113,7 @@ export default function LogSpendingPage() {
     <AppShell
       title="Log Spending"
       subtitle="Awareness is the rep. Tag where it went — the split shows whether it's fueling the work or leaking from it."
+      minimalMobileHeader
     >
       {/* Top-of-page back control — no scroll required */}
       <div className="mb-5">

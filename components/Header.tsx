@@ -20,6 +20,17 @@ export interface HeaderProps {
    * Desktop (`lg+`) layout is unaffected.
    */
   mobileGreeting?: boolean;
+  /**
+   * Mobile-only minimal header for secondary pages. When true, on mobile
+   * (`<lg`) the entire top row (logo/greeting, verified pill, bell, profile
+   * link) is not rendered at all, and the bottom mobile title block renders
+   * unconditionally as a single centered h1 with no subtitle. Desktop
+   * (`lg+`) is completely unaffected — title/subtitle/pill/bell/profile link
+   * render exactly as without this prop. Ignored in combination with
+   * `hideTitleOnMobile` (that prop becomes moot) but NOT with
+   * `mobileGreeting` — do not pass both on the same page.
+   */
+  minimalMobileHeader?: boolean;
 }
 
 export function Header({
@@ -27,12 +38,17 @@ export function Header({
   subtitle,
   hideTitleOnMobile,
   mobileGreeting,
+  minimalMobileHeader,
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 border-b border-[#23232a] bg-bg/80 backdrop-blur">
-      <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8 lg:py-4">
+      <div
+        className={`items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8 lg:py-4${
+          minimalMobileHeader ? " hidden lg:flex" : " flex"
+        }`}
+      >
         <div className="flex min-w-0 items-center gap-3">
-          {mobileGreeting ? (
+          {minimalMobileHeader ? null : mobileGreeting ? (
             <div className="flex items-center gap-2.5 lg:hidden">
               <div className="grid h-9 w-9 place-items-center rounded-md border border-[#2f2f38] bg-bg shadow-[0_0_0_1px_rgba(212,175,55,0.18)_inset] score-num text-sm font-bold text-gold">
                 {mockAthlete.avatarInitials}
@@ -74,7 +90,11 @@ export function Header({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div
+          className={`items-center gap-2 sm:gap-3${
+            minimalMobileHeader ? " hidden lg:flex" : " flex"
+          }`}
+        >
           <span className="hidden items-center gap-1.5 rounded-full border border-success/30 bg-success/10 px-2.5 py-1 text-xs font-medium text-success sm:inline-flex">
             <ShieldCheck className="h-3.5 w-3.5" />
             Teamworks verified
@@ -111,17 +131,28 @@ export function Header({
         </div>
       </div>
 
-      {!hideTitleOnMobile && (title || subtitle) && (
-        <div className="border-t border-[#23232a] px-4 py-3 sm:px-6 lg:hidden">
-          {title && (
-            <h1 className="text-lg font-semibold tracking-tight text-ink">
+      {minimalMobileHeader ? (
+        title && (
+          <div className="border-t border-[#23232a] px-4 py-3 sm:px-6 lg:hidden">
+            <h1 className="text-center text-lg font-semibold tracking-tight text-ink">
               {title}
             </h1>
-          )}
-          {subtitle && (
-            <p className="text-sm text-ink-secondary">{subtitle}</p>
-          )}
-        </div>
+          </div>
+        )
+      ) : (
+        !hideTitleOnMobile &&
+        (title || subtitle) && (
+          <div className="border-t border-[#23232a] px-4 py-3 sm:px-6 lg:hidden">
+            {title && (
+              <h1 className="text-lg font-semibold tracking-tight text-ink">
+                {title}
+              </h1>
+            )}
+            {subtitle && (
+              <p className="text-sm text-ink-secondary">{subtitle}</p>
+            )}
+          </div>
+        )
       )}
     </header>
   );

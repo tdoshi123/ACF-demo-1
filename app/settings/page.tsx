@@ -192,6 +192,7 @@ export default function SettingsPage() {
     <AppShell
       title="Settings"
       subtitle="Update your inputs. Plans recompute instantly."
+      minimalMobileHeader
     >
       {/* Top-of-page back control — no scroll required */}
       <div className="mb-5">
