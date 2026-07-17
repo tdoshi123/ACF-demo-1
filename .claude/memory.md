@@ -34,7 +34,11 @@ onboarding/         Multi-step onboarding (welcome → auth → program → depo
 dashboard/          Home. Investing summary, recent activity, quick actions
 portfolio/          Holdings, risk profiles, charts
 education/          Lesson modules + badges
-settings/           Deposit, risk, notifications, reset demo data
+settings/           "More Actions" nav hub (bottom-nav "More" tab). Sub-pages:
+                    profile/, wallet/, recurring-deposit/, risk-profile/,
+                    security/ (stub), privacy/ (legal + reset demo data),
+                    faq/ (accordion), preferences/ (notifications). Languages
+                    (EN/ES cosmetic toggle) lives inline on the hub, not a page.
 enter-check/        Log a NIL check, see the split preview
 log-spending/       Log lifestyle spend against the cap
 globals.css         Design tokens + surface/eyebrow component classes
@@ -176,6 +180,16 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
   tests — only the pure helpers in `lib/calculations.ts` are covered. Same
   root cause as the general "no component testing" gap above; verified
   manually instead.
+- `app/settings/risk-profile/page.tsx`'s "Allocation" summary row truncates
+  each slice label to its first word (`s.label.split(" ")[0]`), so "US
+  Bonds" and "US Stocks" both render as just "US" — ambiguous display bug.
+  Pre-existing (moved verbatim from the old flat settings page during the
+  2026-07-17 More Actions hub refactor, not introduced by it). Flagged as a
+  follow-up, not fixed inline per "don't refactor outside scope."
+- More Actions hub sub-pages (2026-07-17): same root cause as above — Logout
+  click, Reset demo data, and the Profile/Wallet/Recurring-Deposit/Security/
+  Privacy pages were verified by code read only, not live-clicked, since no
+  component test harness exists.
 
 ## Don't do this
 - Don't add a backend, API route, or database.
@@ -189,6 +203,16 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 ## Features shipped
 Appended after every merge. Newest first.
 
+- 2026-07-17 — "More Actions" navigation hub. Relabeled the bottom-nav /
+  sidebar "Settings" tab to "More" with a hamburger icon. The old flat
+  settings page is now a grouped nav hub (Account, Investing, Security &
+  Privacy, Support, App Settings) with a Logout button, splitting existing
+  functionality into 8 nested sub-pages under `app/settings/`: profile,
+  wallet, recurring-deposit, risk-profile, security (stub), privacy, faq
+  (accordion), preferences. Adds a cosmetic EN/ES language toggle
+  (`StorageKeys.language`) inline on the hub — no real translation. Key
+  files: `app/settings/page.tsx` and its 8 sub-pages, `components/MobileNav.tsx`,
+  `components/Sidebar.tsx`, `lib/storage.ts`, `lib/types.ts`.
 - 2026-07-17 — Simplified mobile headers on 5 secondary pages. On mobile
   only, Portfolio, Enter Check, Log Spending, Education, and Settings now
   show just a centered page title in the header — no logo, verified pill,
