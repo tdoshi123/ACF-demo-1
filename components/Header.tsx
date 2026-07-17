@@ -13,28 +13,54 @@ export interface HeaderProps {
    * (`hidden lg:block`) block is unaffected.
    */
   hideTitleOnMobile?: boolean;
+  /**
+   * Home-only mobile header variant. When true, the mobile (`lg:hidden`) left
+   * block shows the athlete avatar + "Welcome back, / <full name>" instead of
+   * the ACF logo, and the right-side profile link is hidden on mobile.
+   * Desktop (`lg+`) layout is unaffected.
+   */
+  mobileGreeting?: boolean;
 }
 
-export function Header({ title, subtitle, hideTitleOnMobile }: HeaderProps) {
+export function Header({
+  title,
+  subtitle,
+  hideTitleOnMobile,
+  mobileGreeting,
+}: HeaderProps) {
   return (
     <header className="sticky top-0 z-30 border-b border-[#23232a] bg-bg/80 backdrop-blur">
       <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8 lg:py-4">
         <div className="flex min-w-0 items-center gap-3">
-          {/* Mobile-only inline logo */}
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 lg:hidden"
-            aria-label="Athlete Collective Fund home"
-          >
-            <span className="grid h-7 w-7 place-items-center rounded-md border border-[#2f2f38] bg-bg-secondary shadow-[0_0_0_1px_rgba(212,175,55,0.18)_inset]">
-              <span className="score-num text-[12px] font-bold tracking-tighter text-gold">
-                A
+          {mobileGreeting ? (
+            <div className="flex items-center gap-2.5 lg:hidden">
+              <div className="grid h-9 w-9 place-items-center rounded-md border border-[#2f2f38] bg-bg shadow-[0_0_0_1px_rgba(212,175,55,0.18)_inset] score-num text-sm font-bold text-gold">
+                {mockAthlete.avatarInitials}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs text-ink-secondary">Welcome back,</p>
+                <h1 className="truncate text-base font-semibold tracking-tight text-ink">
+                  {mockAthlete.firstName} {mockAthlete.lastName}
+                </h1>
+              </div>
+            </div>
+          ) : (
+            /* Mobile-only inline logo */
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 lg:hidden"
+              aria-label="Athlete Collective Fund home"
+            >
+              <span className="grid h-7 w-7 place-items-center rounded-md border border-[#2f2f38] bg-bg-secondary shadow-[0_0_0_1px_rgba(212,175,55,0.18)_inset]">
+                <span className="score-num text-[12px] font-bold tracking-tighter text-gold">
+                  A
+                </span>
               </span>
-            </span>
-            <span className="score-num text-sm font-semibold tracking-[0.22em] text-ink">
-              ACF
-            </span>
-          </Link>
+              <span className="score-num text-sm font-semibold tracking-[0.22em] text-ink">
+                ACF
+              </span>
+            </Link>
+          )}
 
           <div className="hidden min-w-0 lg:block">
             {title && (
@@ -65,7 +91,9 @@ export function Header({ title, subtitle, hideTitleOnMobile }: HeaderProps) {
 
           <Link
             href="/settings"
-            className="flex items-center gap-2 rounded-xl border border-[#23232a] bg-bg-secondary px-2 py-1.5 transition-colors hover:border-[#2f2f38]"
+            className={`flex items-center gap-2 rounded-xl border border-[#23232a] bg-bg-secondary px-2 py-1.5 transition-colors hover:border-[#2f2f38]${
+              mobileGreeting ? " hidden lg:flex" : ""
+            }`}
             aria-label="Profile and settings"
           >
             <div className="grid h-7 w-7 place-items-center rounded-md border border-[#2f2f38] bg-bg shadow-[0_0_0_1px_rgba(212,175,55,0.18)_inset] score-num text-xs font-bold text-gold">

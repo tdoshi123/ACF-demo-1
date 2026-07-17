@@ -139,19 +139,9 @@ export default function DashboardPage() {
       title={`Welcome back, ${mockAthlete.firstName}`}
       subtitle={`${mockAthlete.sport} · ${mockAthlete.school} · ${mockMonthlyIncome.month}`}
       hideTitleOnMobile
+      mobileGreeting
     >
       <div className="space-y-6">
-        {/* Phone-only greeting: scrolls with content instead of pinning in the
-            top bar (3.2). Tablet/desktop use the header's own title blocks. */}
-        <div className="md:hidden">
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">
-            Welcome back, {mockAthlete.firstName}
-          </h1>
-          <p className="mt-1 text-sm text-ink-secondary">
-            {mockAthlete.sport} · {mockAthlete.school} · {mockMonthlyIncome.month}
-          </p>
-        </div>
-
         {/* ------- 1. Portfolio Value (main insight) ------- */}
         <PortfolioValueChart
           balance={mockPortfolioBalance}

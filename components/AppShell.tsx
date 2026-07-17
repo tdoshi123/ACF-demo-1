@@ -8,6 +8,7 @@ export interface AppShellProps {
   title?: string;
   subtitle?: string;
   hideTitleOnMobile?: boolean;
+  mobileGreeting?: boolean;
 }
 
 export function AppShell({
@@ -15,6 +16,7 @@ export function AppShell({
   title,
   subtitle,
   hideTitleOnMobile,
+  mobileGreeting,
 }: AppShellProps) {
   return (
     <div className="flex min-h-screen w-full">
@@ -24,6 +26,7 @@ export function AppShell({
           title={title}
           subtitle={subtitle}
           hideTitleOnMobile={hideTitleOnMobile}
+          mobileGreeting={mobileGreeting}
         />
         <main className="flex-1 px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
