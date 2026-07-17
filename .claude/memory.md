@@ -189,6 +189,14 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 ## Features shipped
 Appended after every merge. Newest first.
 
+- 2026-07-17 — Mobile home header: avatar + greeting. On mobile only, Home's
+  header now shows the athlete's avatar initials and "Welcome back, / <full
+  name>" instead of the ACF logo, with the right-side profile link hidden
+  (content moved into the greeting) and the now-duplicate in-body greeting
+  text removed from the dashboard. Gated behind a new `mobileGreeting` prop
+  threaded page → `AppShell` → `Header` so every other page's mobile header is
+  unaffected. Key files: `components/Header.tsx`, `components/AppShell.tsx`,
+  `app/dashboard/page.tsx`.
 - 2026-07-17 — Mandatory risk quiz + fine-tune allocation editor. The
   onboarding risk quiz can no longer be skipped by clicking a preset card
   directly. Added a shared `AllocationEditor` letting athletes fine-tune
