@@ -189,6 +189,17 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 ## Features shipped
 Appended after every merge. Newest first.
 
+- 2026-07-17 — Simplified mobile headers on 5 secondary pages. On mobile
+  only, Portfolio, Enter Check, Log Spending, Education, and Settings now
+  show just a centered page title in the header — no logo, verified pill,
+  bell, or profile link. Desktop is unchanged everywhere. Adds a
+  `minimalMobileHeader` prop threaded page → `AppShell` → `Header`,
+  mirroring the existing `mobileGreeting` pattern; a follow-up fix also
+  hides the (previously still-rendered-but-empty) top row div on mobile so
+  no blank padded strip appears above the centered title. Key files:
+  `components/Header.tsx`, `components/AppShell.tsx`, `app/portfolio/page.tsx`,
+  `app/enter-check/page.tsx`, `app/log-spending/page.tsx`,
+  `app/education/page.tsx`, `app/settings/page.tsx`.
 - 2026-07-17 — Mobile home header: avatar + greeting. On mobile only, Home's
   header now shows the athlete's avatar initials and "Welcome back, / <full
   name>" instead of the ACF logo, with the right-side profile link hidden
