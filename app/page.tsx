@@ -111,13 +111,13 @@ export default function LandingPage() {
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Target className="h-3.5 w-3.5" />
-                Built on the 50/30/20 rule
+                Program-based check splitting
               </span>
             </div>
 
             <div className="mt-10 grid w-full max-w-2xl grid-cols-3 gap-4 border-y border-[#23232a] py-5 sm:gap-6 sm:py-6">
               <Scoreboard value="84%" label="Retention" tone="gold" />
-              <Scoreboard value="27" label="Day Streak" tone="ink" />
+              <Scoreboard value="04" label="Modules" tone="ink" />
               <Scoreboard value="06" label="Badges" tone="green" />
             </div>
           </div>
@@ -153,14 +153,14 @@ export default function LandingPage() {
           <FeatureTile
             step="03"
             icon={Target}
-            title="Apply the 50/30/20 rule"
-            body="Half for needs, 30% for wants, 20% to save and invest. Athlete Collective Fund calculates your target every month."
+            title="Choose your program"
+            body="Pick a locked allocation framework — NIL Foundation, Prime Window Protocol, or Legacy Builder. It splits every check into taxes, lifestyle, emergency, and investing automatically."
           />
           <FeatureTile
             step="04"
             icon={LineChart}
             title="Auto-invest with structure"
-            body="Pick a model portfolio that matches your risk profile and set a recurring contribution from your 20% bucket."
+            body="Pick a model portfolio that matches your risk profile and set a recurring contribution from your investing bucket."
           />
         </div>
       </section>
@@ -203,7 +203,7 @@ export default function LandingPage() {
             </h2>
             <p className="mt-4 max-w-2xl text-sm text-ink-secondary">
               Everything you see — your savings target, your contributions,
-              and your streaks — is private to you. No teammates, no boosters,
+              and your badges — is private to you. No teammates, no boosters,
               and no brands can see what you are building. We are not a
               social network. We are a private command center for athlete
               money.
@@ -248,17 +248,14 @@ export default function LandingPage() {
               <p className="mt-2 text-sm text-ink-secondary">
                 Verify once. Build a private, athlete-only investing routine.
               </p>
-              <div className="mt-5 flex flex-col gap-2 sm:flex-row">
-                <PrimaryButton
-                  fullWidth
+              <div className="mt-5">
+                <button
                   onClick={continueWithTeamworks}
+                  className="score-num inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-gold transition-colors hover:text-ink"
                 >
-                  <ShieldCheck className="h-4 w-4" />
                   Continue with Teamworks
-                </PrimaryButton>
-                <SecondaryButton fullWidth href="/dashboard">
-                  View demo
-                </SecondaryButton>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
           </div>
@@ -331,7 +328,7 @@ function HeroMockCard() {
           <div>
             <div className="text-eyebrow">June plan</div>
             <div className="mt-1 text-xs text-ink-secondary">
-              50 / 30 / 20 — auto-calculated
+              NIL Foundation — auto-split
             </div>
           </div>
           <div className="grid h-9 w-9 place-items-center rounded-md border border-[#2f2f38] bg-bg shadow-[0_0_0_1px_rgba(212,175,55,0.18)_inset] text-gold">
@@ -350,19 +347,25 @@ function HeroMockCard() {
           </div>
 
           <div className="mt-5 flex h-2 overflow-hidden rounded-full bg-bg">
-            <div className="h-full w-[50%] bg-ink-muted/60" />
-            <div className="h-full w-[30%] bg-gold" />
-            <div className="h-full w-[20%] bg-success" />
+            <div className="h-full w-[25%] bg-ink-muted" />
+            <div className="h-full w-[46%] bg-ink" />
+            <div className="h-full w-[15%] bg-success/60" />
+            <div className="h-full w-[14%] bg-success" />
           </div>
 
           <div className="mt-3 grid grid-cols-3 gap-3 text-xs">
-            <Allocation tone="needs" label="Needs" value="$2,100" pct="50%" />
-            <Allocation tone="wants" label="Wants" value="$1,260" pct="30%" />
+            <Allocation tone="needs" label="Taxes" value="$1,050" pct="25%" />
+            <Allocation
+              tone="wants"
+              label="Lifestyle"
+              value="$1,932"
+              pct="46%"
+            />
             <Allocation
               tone="savings"
               label="Invest"
-              value="$840"
-              pct="20%"
+              value="$588"
+              pct="14%"
             />
           </div>
         </div>
@@ -394,10 +397,10 @@ function HeroMockCard() {
             </div>
             <div className="text-right">
               <div className="score-num text-[10px] uppercase tracking-[0.24em] text-ink-muted">
-                of 20% bucket
+                of investing target
               </div>
               <div className="score-num text-sm font-semibold text-gold">
-                60%
+                85%
               </div>
             </div>
           </div>
