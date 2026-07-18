@@ -214,6 +214,18 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 ## Features shipped
 Appended after every merge. Newest first.
 
+- 2026-07-18 — Landing page synced with current product. Replaced all
+  stale "50/30/20 needs/wants/savings" copy (hero trust pill, "How it
+  works" step 03/04, hero mock card's split bar/tiles/deposit footer,
+  and a "your streaks" line in the Privacy section) with the real
+  program-based split model (NIL Foundation / Prime Window Protocol /
+  Legacy Builder; buckets taxes/lifestyle/emergency/investing/kids).
+  Also fixed a hero scoreboard stat advertising a nonexistent "Day
+  Streak" feature (now "Modules") and removed a redundant duplicate
+  Continue-with-Teamworks/View-demo button pair from the bottom "Ready
+  to start?" card, replacing it with a single text link that reuses
+  the existing `continueWithTeamworks` handler. Content/copy-only —
+  no logic, storage, or token changes. Key file: `app/page.tsx`.
 - 2026-07-17 — Structured feedback form. Split the single free-text feedback
   textarea into three fields: "What feature?" (plain text input), "What's
   working?" and "What's wrong?" (textareas). Submit requires the feature field
