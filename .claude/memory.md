@@ -171,6 +171,11 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
   (`StorageKeys.risk`), resolved via `resolveAllocation()` in
   `lib/calculations.ts`. Picking a different preset clears any stored custom
   mix for the prior preset.
+- 2026-07-18 — `SectionCard`'s header/body padding (`components/SectionCard.tsx`)
+  is fixed and must not be overridden via `className`/`bodyClassName` —
+  Tailwind's class-order-independent CSS generation makes a later-appended
+  conflicting utility class unreliable to win. When a page needs a tighter
+  `SectionCard`, trim spacing/copy inside the step's own markup instead.
 
 ## Known gaps
 - No error boundaries.
@@ -214,6 +219,16 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 ## Features shipped
 Appended after every merge. Newest first.
 
+- 2026-07-18 — Condensed onboarding Welcome step to fit 390×844 with no
+  scroll. Tightened spacing, `InfoTile` padding/icon size, and copy on the
+  Welcome step (hero card, two info tiles, "what this app is not" list,
+  disclaimer) so the full step fits an iPhone 12 Pro viewport with zero
+  vertical scroll (live-measured: `scrollHeight` 844 == `innerHeight` 844).
+  Also trimmed shared onboarding chrome (page padding, header/footer
+  margins, step-0 Back button) mobile-only via `sm:`-gating — desktop
+  unaffected, other 7 steps get slightly tighter mobile spacing as a side
+  benefit. No content block removed, only whitespace and copy length. Key
+  file: `app/onboarding/page.tsx`.
 - 2026-07-18 — Landing page synced with current product. Replaced all
   stale "50/30/20 needs/wants/savings" copy (hero trust pill, "How it
   works" step 03/04, hero mock card's split bar/tiles/deposit footer,
