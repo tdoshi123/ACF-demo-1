@@ -394,10 +394,10 @@ export default function OnboardingPage() {
    * ------------------------------------------------------------------------ */
 
   return (
-    <div className="mx-auto min-h-screen max-w-3xl px-5 py-8 sm:py-12">
+    <div className="mx-auto min-h-screen max-w-3xl px-5 py-5 sm:py-12">
       <Header stepIdx={stepIdx} />
 
-      <div className="mt-8">
+      <div className="mt-5 sm:mt-8">
         {step === "welcome" && <WelcomeStep />}
 
         {step === "auth" && (
@@ -496,10 +496,10 @@ export default function OnboardingPage() {
         )}
       </div>
 
-      <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-5 sm:mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SecondaryButton
           onClick={back}
-          className={stepIdx === 0 ? "invisible" : ""}
+          className={stepIdx === 0 ? "hidden sm:invisible" : ""}
         >
           <ArrowLeft className="h-4 w-4" />
           Back
@@ -547,7 +547,7 @@ function Header({ stepIdx }: { stepIdx: number }) {
         </BadgePill>
       </div>
 
-      <ProgressBar value={pct} height={6} className="mt-6" />
+      <ProgressBar value={pct} height={6} className="mt-4 sm:mt-6" />
 
       <div className="mt-3 hidden gap-1 overflow-x-auto sm:flex">
         {STEPS.map((s, i) => (
@@ -577,33 +577,32 @@ function Header({ stepIdx }: { stepIdx: number }) {
 function WelcomeStep() {
   return (
     <SectionCard
-      eyebrow="Step 1"
       title="Build discipline with your NIL money before you invest it."
-      subtitle="Athlete Collective Fund is for athletes earning NIL, endorsement, collective, revenue-share, or athletic-related income."
+      subtitle="For athletes earning NIL, endorsement, collective, or revenue-share income."
       elevated
     >
-      <div className="space-y-5">
-        <div className="grid gap-3 sm:grid-cols-2">
+      <div className="space-y-2.5 sm:space-y-5">
+        <div className="grid gap-2 sm:grid-cols-2">
           <InfoTile
             icon={<Trophy className="h-4 w-4 text-gold" />}
             title="Athletes only"
-            body="Sign in with Teamworks. We verify you are an athlete before unlocking the app — no public sign-ups."
+            body="Sign in with Teamworks. We verify you're an athlete — no public sign-ups."
           />
           <InfoTile
             icon={<Shield className="h-4 w-4 text-needs" />}
             title="Structure first, investing second"
-            body="We teach you how NIL money moves, plan around it, and then automate the part you should actually be investing."
+            body="Learn how NIL money moves, plan around it, then automate what you invest."
           />
         </div>
 
-        <div className="rounded-2xl border border-white/5 bg-bg-card/60 p-4">
+        <div className="rounded-2xl border border-white/5 bg-bg-card/60 p-3">
           <div className="text-eyebrow">What this app is not</div>
-          <ul className="mt-3 space-y-2.5 text-sm text-ink-secondary">
+          <ul className="mt-2 space-y-1 text-sm text-ink-secondary">
             {[
-              "You will not pick individual stocks.",
-              "You will not day trade.",
-              "You will not trade options or crypto.",
-              "You will not manually control internal portfolio trades.",
+              "Pick individual stocks.",
+              "Day trade.",
+              "Trade options or crypto.",
+              "Manually override trades.",
             ].map((line) => (
               <li key={line} className="flex items-start gap-2">
                 <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-ink-muted" />
@@ -614,8 +613,8 @@ function WelcomeStep() {
         </div>
 
         <DisclaimerBox>
-          This frontend MVP uses mock data. Nothing in this flow opens a real
-          brokerage account or moves real money.
+          This MVP uses mock data — nothing here opens a real brokerage
+          account or moves real money.
         </DisclaimerBox>
       </div>
     </SectionCard>
@@ -2031,14 +2030,14 @@ function InfoTile({
   body: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-bg-card/60 p-4">
+    <div className="rounded-2xl border border-white/10 bg-bg-card/60 p-3">
       <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5">
           {icon}
         </div>
         <div className="text-sm font-semibold text-ink">{title}</div>
       </div>
-      <p className="mt-2 text-xs text-ink-secondary">{body}</p>
+      <p className="mt-1.5 text-xs text-ink-secondary">{body}</p>
     </div>
   );
 }
