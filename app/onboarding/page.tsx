@@ -71,7 +71,7 @@ const STEPS = [
   { id: "auth", label: "Teamworks" },
   { id: "program", label: "Program" },
   { id: "income", label: "Income" },
-  { id: "wallet", label: "Wallet" },
+  { id: "wallet", label: "Transfer" },
   { id: "deposit", label: "Deposit" },
   { id: "risk", label: "Risk" },
   { id: "done", label: "Confirm" },
@@ -436,7 +436,6 @@ export default function OnboardingPage() {
             wallet={wallet}
             loading={walletLoading}
             onConnect={connectWallet}
-            identity={identity}
           />
         )}
 
@@ -496,17 +495,23 @@ export default function OnboardingPage() {
         )}
       </div>
 
-      <div className="mt-5 sm:mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-5 sm:mt-8 flex flex-row items-center gap-3">
         <SecondaryButton
           onClick={back}
-          className={stepIdx === 0 ? "hidden sm:invisible" : ""}
+          size="lg"
+          className={stepIdx === 0 ? "hidden sm:invisible sm:flex-1" : "flex-1"}
         >
           <ArrowLeft className="h-4 w-4" />
           Back
         </SecondaryButton>
 
         {step !== "done" ? (
-          <PrimaryButton onClick={next} disabled={!canAdvance()} size="lg">
+          <PrimaryButton
+            onClick={next}
+            disabled={!canAdvance()}
+            size="lg"
+            className="flex-1"
+          >
             {step === "welcome"
               ? "Continue with Teamworks"
               : step === "auth"
@@ -515,7 +520,7 @@ export default function OnboardingPage() {
             <ArrowRight className="h-4 w-4" />
           </PrimaryButton>
         ) : (
-          <PrimaryButton onClick={finish} size="lg">
+          <PrimaryButton onClick={finish} size="lg" className="flex-1">
             Go to Dashboard
             <ArrowRight className="h-4 w-4" />
           </PrimaryButton>
@@ -684,7 +689,7 @@ function AuthStep({
         )}
 
         {identity && (
-          <div className="space-y-1 sm:space-y-3">
+          <div className="space-y-2.5 sm:space-y-3">
             <SuccessRow
               icon={<BadgeCheck className="h-5 w-5 text-success" />}
               title="Athlete identity verified"
@@ -700,24 +705,6 @@ function AuthStep({
               title="Wallet available"
               subtitle="Teamworks Wallet is available. You'll connect it in step 5."
             />
-
-            <div className="rounded-2xl border border-white/5 bg-bg-card/60 p-2 sm:p-4">
-              <div className="text-eyebrow">Athlete profile</div>
-              <div className="mt-2 sm:mt-3 grid grid-cols-2 gap-2 sm:gap-3">
-                <ProfileField label="Name" value={identity.name} />
-                <ProfileField label="Email" value={identity.email} />
-                <ProfileField label="School" value={identity.school} />
-                <ProfileField label="Sport" value={identity.sport} />
-                <ProfileField
-                  label="Teamworks User ID"
-                  value={identity.teamworksUserId}
-                />
-                <ProfileField
-                  label="Athlete status"
-                  value={identity.athleteStatus}
-                />
-              </div>
-            </div>
           </div>
         )}
 
@@ -780,19 +767,6 @@ function SuccessRow({
       <div className="min-w-0">
         <div className="text-sm font-semibold text-ink">{title}</div>
         <div className="break-words text-xs text-ink-secondary">{subtitle}</div>
-      </div>
-    </div>
-  );
-}
-
-function ProfileField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="min-w-0">
-      <div className="text-[10px] uppercase tracking-wider text-ink-muted">
-        {label}
-      </div>
-      <div className="mt-0.5 text-sm font-medium text-ink break-words">
-        {value}
       </div>
     </div>
   );
@@ -1128,26 +1102,17 @@ function IncomeStep({
             <Wallet className="h-3.5 w-3.5" />
             Use Mock Wallet average ({formatCurrency(MOCK_WALLET_AVERAGE)})
           </button>
-          {[2000, 4000, 6000, 10000].map((p) => (
-            <button
-              key={p}
-              onClick={() => setIncome(p)}
-              className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-ink-secondary hover:border-white/20 hover:text-ink"
-            >
-              {formatCurrency(p)}
-            </button>
-          ))}
         </div>
 
         {program && (
-          <div className="rounded-2xl border border-white/10 bg-bg-card/70 p-5">
+          <div className="rounded-2xl border border-white/10 bg-bg-card/70 p-4">
             <div className="flex items-center justify-between">
               <div className="text-eyebrow">Your {program.name} plan</div>
               <span className="text-xs text-ink-secondary">
-                Based on {formatCurrency(income)} / mo
+                Based on {formatCurrency(income)}
               </span>
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="mt-3 grid gap-2 sm:grid-cols-3">
               {buckets.map((b) => (
                 <PlanRow
                   key={b.label}
@@ -1158,7 +1123,7 @@ function IncomeStep({
               ))}
             </div>
 
-            <div className="mt-5 rounded-xl border border-gold/30 bg-gold/[0.07] p-4">
+            <div className="mt-3 rounded-xl border border-gold/30 bg-gold/[0.07] p-3">
               <div className="flex items-center gap-2 text-sm text-ink">
                 <Target className="h-4 w-4 text-gold" />
                 Based on {program.name}, your monthly investing target is{" "}
@@ -1213,7 +1178,7 @@ function PlanRow({
   return (
     <div
       className={[
-        "rounded-xl border p-4",
+        "rounded-xl border p-3",
         highlight
           ? "border-gold/40 bg-gold/[0.06]"
           : "border-white/5 bg-bg-card/40",
@@ -1228,7 +1193,7 @@ function PlanRow({
         />
         {label}
       </div>
-      <div className="mt-2 text-xl font-semibold tracking-tight text-ink">
+      <div className="mt-1.5 text-lg font-semibold tracking-tight text-ink">
         {formatCurrency(amount)}
       </div>
     </div>
@@ -1298,44 +1263,21 @@ function WalletStep({
   wallet,
   loading,
   onConnect,
-  identity,
 }: {
   wallet: WalletConnectionState;
   loading: boolean;
   onConnect: (method: WalletConnectionState["preferredMethod"]) => void;
-  identity: AthleteIdentity | null;
 }) {
   const connected = wallet.status === "connected";
 
   return (
     <SectionCard
       eyebrow="Step 5"
-      title="Connect your Teamworks Wallet"
+      title="Set up your transfer method"
       subtitle="The wallet is how recurring deposits will fund your investing in production. For now this is a mock connection."
       elevated
     >
       <div className="space-y-5">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <StatusTile
-            label="Wallet status"
-            value={identity?.walletAvailability ?? "Available"}
-            tone="success"
-            icon={<Wallet className="h-4 w-4" />}
-          />
-          <StatusTile
-            label="Connection status"
-            value={connected ? "Connected" : "Not Connected"}
-            tone={connected ? "success" : "muted"}
-            icon={
-              connected ? (
-                <CheckCircle2 className="h-4 w-4" />
-              ) : (
-                <Lock className="h-4 w-4" />
-              )
-            }
-          />
-        </div>
-
         <div className="rounded-2xl border border-white/10 bg-bg-card/70 p-5">
           <div className="text-eyebrow">Transfer methods</div>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -1384,7 +1326,7 @@ function WalletStep({
             ) : (
               <>
                 <Wallet className="h-4 w-4" />
-                Connect Teamworks Wallet
+                Connect
               </>
             )}
           </button>
@@ -1410,32 +1352,6 @@ function WalletStep({
         </DisclaimerBox>
       </div>
     </SectionCard>
-  );
-}
-
-function StatusTile({
-  label,
-  value,
-  tone,
-  icon,
-}: {
-  label: string;
-  value: string;
-  tone: "success" | "muted";
-  icon: React.ReactNode;
-}) {
-  const palette =
-    tone === "success"
-      ? "border-success/30 bg-success/[0.06] text-success"
-      : "border-white/10 bg-bg-card/60 text-ink-secondary";
-  return (
-    <div className={`rounded-2xl border p-4 ${palette}`}>
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wider">
-        {icon}
-        {label}
-      </div>
-      <div className="mt-2 text-lg font-semibold text-ink">{value}</div>
-    </div>
   );
 }
 
