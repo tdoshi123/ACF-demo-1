@@ -113,6 +113,20 @@ Every `SpendingLog` draws from the lifestyle bucket.
 Programs (`lib/programs.ts`): NIL Foundation (54% retention target),
 Prime Window Protocol, Legacy Builder.
 
+**Teamworks is the authentication mechanism, not a wallet/funding step.**
+Athletes only ever access this app via Teamworks SSO (onboarding Step 2,
+`AuthStep` — mock in this MVP). There is no separate ACF account. This means:
+- Step 2 (`AuthStep`) is the *only* identity/auth step. Its "verified"
+  state already establishes the athlete's identity, email, school, and
+  Teamworks user ID — don't re-surface a second "connection status"
+  concept anywhere else in onboarding.
+- Onboarding Step 5 (`id: "wallet"` internally, nav label "Transfer") is
+  **not** a second auth/connection step — it's specifically about
+  choosing a **transfer method** (Bank/ACH, Venmo, PayPal, other) to fund
+  recurring investing deposits. Its old "Wallet status" / "Connection
+  status" cards were redundant with what Step 2 already confirms and were
+  removed (2026-07-18).
+
 ## Storage
 `lib/storage.ts` — localStorage wrapper, `acf:` prefix, SSR-safe (no-ops when
 `window` is undefined), swallows parse errors and returns the fallback.
@@ -188,6 +202,24 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
   text whose length isn't tightly bounded, unless you specifically want
   silent clipping. `app/settings/risk-profile/page.tsx`'s truncated-label
   bug (see Known gaps) is the same family of issue.
+- 2026-07-18 — Onboarding Step 5 reframed from "wallet connection" to
+  "transfer method" (nav label `Wallet` → `Transfer`; title "Connect your
+  Teamworks Wallet" → "Set up your transfer method"; button "Connect
+  Teamworks Wallet" → "Connect"). Reasoning: Teamworks (Step 2) is the only
+  authentication concept in this app — Step 5 choosing Bank/ACH vs Venmo
+  vs PayPal is a funding-method choice, not a second sign-in/connection
+  step, so its old "Wallet status" / "Connection status" tiles were
+  redundant with Step 2's identity-verified state and removed. See Domain
+  model above.
+- 2026-07-18 — Onboarding footer (Back/Continue) changed from
+  stack-on-mobile/row-on-desktop to always-row, both buttons `flex-1` and
+  `size="lg"` so they render as equal-width, equal-height pills side by
+  side at every breakpoint. This is shared chrome across all 8 steps.
+  Step 0 (Welcome)'s long "Continue with Teamworks" label doesn't fit
+  beside even an invisible Back button at 390px, so Back stays `hidden`
+  (not `invisible`) on mobile at step 0 specifically — `sm:invisible`
+  still reserves alignment space on desktop. Verified live at 390×844
+  across all 8 steps plus desktop; only step 0 needed this exception.
 
 ## Known gaps
 - No error boundaries.
@@ -231,6 +263,33 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 ## Features shipped
 Appended after every merge. Newest first.
 
+- 2026-07-18 — Onboarding Steps 2/4/5 content and layout polish (not yet
+  merged — direct edits on `feature/onboarding-step2-tweaks`, documented
+  ahead of merge at explicit request). Three changes:
+  1. **Step 2** (`AuthStep`): removed the redundant "Athlete profile" grid
+     (all 6 fields duplicated what the 3 status rows already show —
+     `ProfileField` component deleted as dead code); loosened spacing
+     between the 3 status rows (`space-y-1` → `space-y-2.5` mobile) now
+     that removing the profile grid freed up vertical budget.
+  2. **Step 4** (`IncomeStep`): removed the `$2,000/$4,000/$6,000/$10,000`
+     quick-pick buttons, keeping only "Use Mock Wallet average"; condensed
+     the "Your {program} plan" bucket tiles (`PlanRow`: `p-4`→`p-3`,
+     `text-xl`→`text-lg` amounts) and its target callout box; removed the
+     "/ mo" suffix after "Based on {amount}" (income is already labelled
+     "monthly" above). Inter-section spacing (`space-y-5` between the
+     input / preset chip / plan box / recommended-range box) left
+     untouched per explicit request.
+  3. **Step 5** (`WalletStep`): see the Decision entry above — reframed as
+     "transfer method" (nav label, title, button text), removed the
+     redundant Wallet/Connection status tiles and the now-dead
+     `StatusTile` component, dropped the now-unused `identity` prop from
+     `WalletStep`.
+  4. **Shared footer** (all 8 steps): Back/Continue made equal-width and
+     equal-height (`flex-1`, both `size="lg"`) — see the Decision entry
+     above for the step-0 exception this required.
+  All changes live in `app/onboarding/page.tsx`. Lint/typecheck/tests
+  clean; live-verified at 390×844 (all steps, 0px overflow) and desktop
+  1280×900 (no regression).
 - 2026-07-18 — Fixed onboarding Step 2 (Teamworks auth) horizontal cutoff
   and vertical scroll at 390×844. The verified-identity view was
   overflowing 69px right and 150px bottom of an iPhone 12 Pro viewport.
