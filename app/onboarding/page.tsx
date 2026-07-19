@@ -647,7 +647,7 @@ function AuthStep({
       subtitle="We confirm you are an athlete through Teamworks. There is no separate Athlete Collective Fund account to manage."
       elevated
     >
-      <div className="space-y-5">
+      <div className="space-y-3 sm:space-y-5">
         {!identity && !error && (
           <button
             onClick={onStart}
@@ -684,7 +684,7 @@ function AuthStep({
         )}
 
         {identity && (
-          <div className="space-y-3">
+          <div className="space-y-1 sm:space-y-3">
             <SuccessRow
               icon={<BadgeCheck className="h-5 w-5 text-success" />}
               title="Athlete identity verified"
@@ -701,9 +701,9 @@ function AuthStep({
               subtitle="Teamworks Wallet is available. You'll connect it in step 5."
             />
 
-            <div className="rounded-2xl border border-white/5 bg-bg-card/60 p-4">
+            <div className="rounded-2xl border border-white/5 bg-bg-card/60 p-2 sm:p-4">
               <div className="text-eyebrow">Athlete profile</div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="mt-2 sm:mt-3 grid grid-cols-2 gap-2 sm:gap-3">
                 <ProfileField label="Name" value={identity.name} />
                 <ProfileField label="Email" value={identity.email} />
                 <ProfileField label="School" value={identity.school} />
@@ -729,11 +729,6 @@ function AuthStep({
             Simulate auth error (dev)
           </button>
         )}
-
-        <DisclaimerBox>
-          This is a mock sign-in. The production app will use the real Teamworks
-          identity service.
-        </DisclaimerBox>
       </div>
     </SectionCard>
   );
@@ -778,13 +773,13 @@ function SuccessRow({
   subtitle: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-success/25 bg-success/[0.06] p-4">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-success/10">
+    <div className="flex items-center gap-2 sm:gap-3 rounded-2xl border border-success/25 bg-success/[0.06] p-2.5 sm:p-4">
+      <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-success/10 sm:h-9 sm:w-9">
         {icon}
       </div>
       <div className="min-w-0">
         <div className="text-sm font-semibold text-ink">{title}</div>
-        <div className="truncate text-xs text-ink-secondary">{subtitle}</div>
+        <div className="break-words text-xs text-ink-secondary">{subtitle}</div>
       </div>
     </div>
   );
@@ -792,11 +787,13 @@ function SuccessRow({
 
 function ProfileField({ label, value }: { label: string; value: string }) {
   return (
-    <div>
+    <div className="min-w-0">
       <div className="text-[10px] uppercase tracking-wider text-ink-muted">
         {label}
       </div>
-      <div className="mt-0.5 text-sm font-medium text-ink">{value}</div>
+      <div className="mt-0.5 text-sm font-medium text-ink break-words">
+        {value}
+      </div>
     </div>
   );
 }
