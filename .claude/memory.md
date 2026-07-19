@@ -176,6 +176,18 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
   Tailwind's class-order-independent CSS generation makes a later-appended
   conflicting utility class unreliable to win. When a page needs a tighter
   `SectionCard`, trim spacing/copy inside the step's own markup instead.
+- 2026-07-18 — `truncate` (`white-space:nowrap` + `overflow:hidden` +
+  ellipsis) on text nested a few block-levels below a flex/grid ancestor can
+  force that ancestor wider than its container — `overflow:hidden` on the
+  leaf does NOT stop its full unwrapped width from counting toward an
+  ancestor flex item's automatic-minimum-size calculation; only `min-width:0`
+  on the actual flex/grid item does, and only within that one context. This
+  caused a real, hard-to-diagnose horizontal-overflow bug in onboarding Step
+  2 (`SuccessRow`'s subtitle) that static code review didn't catch — found
+  only by live DOM bisection. Prefer `break-words` over `truncate` for any
+  text whose length isn't tightly bounded, unless you specifically want
+  silent clipping. `app/settings/risk-profile/page.tsx`'s truncated-label
+  bug (see Known gaps) is the same family of issue.
 
 ## Known gaps
 - No error boundaries.
@@ -219,6 +231,17 @@ Always `readJSON` / `writeJSON` with a key from `StorageKeys`. Never touch
 ## Features shipped
 Appended after every merge. Newest first.
 
+- 2026-07-18 — Fixed onboarding Step 2 (Teamworks auth) horizontal cutoff
+  and vertical scroll at 390×844. The verified-identity view was
+  overflowing 69px right and 150px bottom of an iPhone 12 Pro viewport.
+  Root cause (found by live DOM bisection, not visible from static review):
+  `SuccessRow`'s `truncate` subtitle text was forcing the whole page wider
+  than the viewport. Fixed by swapping `truncate` → `break-words` (zero
+  content removed — full text now wraps instead of clipping) plus
+  mobile-only spacing trims. Removed the "Educational, not financial
+  advice" disclaimer from this step only (authorized). Live-verified 0px
+  overflow both directions across all 4 `AuthStep` states. Key file:
+  `app/onboarding/page.tsx`.
 - 2026-07-18 — Condensed onboarding Welcome step to fit 390×844 with no
   scroll. Tightened spacing, `InfoTile` padding/icon size, and copy on the
   Welcome step (hero card, two info tiles, "what this app is not" list,
